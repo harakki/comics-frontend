@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState, type FormEventHandler } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +22,6 @@ const primaryNavItems: NavItem[] = [
   { href: "/catalog", label: "Каталог" },
   { href: "/library", label: "Библиотека" },
   { href: "/collections", label: "Коллекции" },
-  { href: "/search", label: "Поиск" },
 ]
 
 const navLinkClassName =
@@ -30,9 +29,11 @@ const navLinkClassName =
 
 export function AppHeader() {
   const pathname = usePathname()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState(() => searchParams.get("q") || "")
 
   useEffect(() => {
     const syncAuthState = async () => {
@@ -62,6 +63,21 @@ export function AppHeader() {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false)
   }
+
+  const handleSearchSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+    event.preventDefault()
+
+    const normalizedQuery = searchValue.trim().slice(0, 120)
+    const params = new URLSearchParams()
+
+    if (normalizedQuery) {
+      params.set("q", normalizedQuery)
+    }
+
+    closeMobileMenu()
+    router.push(params.toString() ? `/catalog?${params.toString()}` : "/catalog")
+  }
+
   const handleLogout = async () => {
     closeMobileMenu()
     await startLogout("/")
@@ -73,6 +89,21 @@ export function AppHeader() {
         <Link href="/" className="text-lg font-semibold tracking-tight">
           MangaDex
         </Link>
+
+        <form onSubmit={handleSearchSubmit} className="hidden flex-1 items-center gap-2 md:flex">
+          <input
+            type="search"
+            value={searchValue}
+            onChange={(event) => {
+              setSearchValue(event.target.value)
+            }}
+            placeholder="Найти тайтл"
+            className="h-9 w-full max-w-xs rounded-md border bg-background px-3 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <Button type="submit" size="sm" variant="outline">
+            Поиск
+          </Button>
+        </form>
 
         <nav className="hidden items-center gap-1 md:flex">
           {primaryNavItems.map((item) => {
@@ -135,6 +166,21 @@ export function AppHeader() {
 
       {isMobileMenuOpen && (
         <div id="mobile-header-menu" className="border-t px-4 py-3 md:hidden">
+          <form onSubmit={handleSearchSubmit} className="mb-3 flex items-center gap-2">
+            <input
+              type="search"
+              value={searchValue}
+              onChange={(event) => {
+                setSearchValue(event.target.value)
+              }}
+              placeholder="Найти тайтл"
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <Button type="submit" size="sm" variant="outline">
+              Поиск
+            </Button>
+          </form>
+
           <nav className="flex flex-col gap-1">
             {primaryNavItems.map((item) => {
               const isActive =
