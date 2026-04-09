@@ -85,27 +85,39 @@ export async function startLogin(returnTo?: string) {
   await keycloak.login({ redirectUri })
 }
 
+const normalizePostLogoutRedirect = (returnTo?: string) => {
+  if (!returnTo || returnTo.startsWith("/login")) {
+    return "/"
+  }
+
+  return returnTo.startsWith("/") ? returnTo : "/"
+}
+
+export async function startLogout(returnTo?: string) {
+  if (!isBrowser()) {
+    return
+  }
+
+  const redirectPath = normalizePostLogoutRedirect(returnTo)
+
+  persistToken(null)
+
+  try {
+    await keycloak.logout({
+      redirectUri: new URL(redirectPath, globalThis.window.location.origin).toString(),
+    })
+  } catch {
+    globalThis.window.location.assign(redirectPath)
+  }
+}
+
 const triggerLogoutOnce = async () => {
   if (!isBrowser()) {
     return
   }
 
   logoutPromise ??= (async () => {
-    persistToken(null)
-
-    const currentPath = `${globalThis.window.location.pathname}${globalThis.window.location.search}${globalThis.window.location.hash}`
-    const returnTo = normalizeReturnTo(currentPath)
-
-    try {
-      await keycloak.logout({
-        redirectUri: new URL(
-          buildLoginHref(returnTo),
-          globalThis.window.location.origin
-        ).toString(),
-      })
-    } catch {
-      globalThis.window.location.assign(buildLoginHref(returnTo))
-    }
+    await startLogout("/")
   })()
 
   return logoutPromise

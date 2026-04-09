@@ -5,7 +5,12 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { buildLoginHref, hasAuthToken, initKeycloak } from "@/lib/axios-instance"
+import {
+  buildLoginHref,
+  hasAuthToken,
+  initKeycloak,
+  startLogout,
+} from "@/lib/axios-instance"
 import { cn } from "@/lib/utils"
 
 type NavItem = {
@@ -57,6 +62,10 @@ export function AppHeader() {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false)
   }
+  const handleLogout = async () => {
+    closeMobileMenu()
+    await startLogout("/")
+  }
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -85,15 +94,22 @@ export function AppHeader() {
           })}
 
           {isAuthenticated ? (
-            <Link
-              href="/profile"
-              className={cn(
-                navLinkClassName,
-                isProfileActive && "bg-accent text-foreground"
-              )}
-            >
-              Профиль
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link
+                href="/profile"
+                className={cn(
+                  navLinkClassName,
+                  isProfileActive && "bg-accent text-foreground"
+                )}
+              >
+                Профиль
+              </Link>
+              <Button type="button" variant="outline" size="sm" onClick={() => {
+                void handleLogout()
+              }}>
+                Выйти
+              </Button>
+            </div>
           ) : (
             <Button asChild size="sm">
               <Link href={loginHref}>Войти</Link>
@@ -140,16 +156,29 @@ export function AppHeader() {
             })}
 
             {isAuthenticated ? (
-              <Link
-                href="/profile"
-                onClick={closeMobileMenu}
-                className={cn(
-                  navLinkClassName,
-                  isProfileActive && "bg-accent text-foreground"
-                )}
-              >
-                Профиль
-              </Link>
+              <>
+                <Link
+                  href="/profile"
+                  onClick={closeMobileMenu}
+                  className={cn(
+                    navLinkClassName,
+                    isProfileActive && "bg-accent text-foreground"
+                  )}
+                >
+                  Профиль
+                </Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => {
+                    void handleLogout()
+                  }}
+                >
+                  Выйти
+                </Button>
+              </>
             ) : (
               <Button asChild size="sm" className="mt-2 w-full">
                 <Link href={loginHref} onClick={closeMobileMenu}>
