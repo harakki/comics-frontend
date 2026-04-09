@@ -51,6 +51,40 @@ const getToken = () => {
 
 export const hasAuthToken = () => Boolean(getToken())
 
+const normalizeReturnTo = (returnTo?: string) => {
+  if (
+    !returnTo ||
+    returnTo === "/login" ||
+    returnTo.startsWith("/login?") ||
+    returnTo.startsWith("/login#")
+  ) {
+    return "/"
+  }
+
+  return returnTo.startsWith("/") ? returnTo : "/"
+}
+
+export const buildLoginHref = (returnTo?: string) => {
+  const normalizedReturnTo = normalizeReturnTo(returnTo)
+
+  return `/login?returnTo=${encodeURIComponent(normalizedReturnTo)}`
+}
+
+export async function startLogin(returnTo?: string) {
+  if (!isBrowser()) {
+    return
+  }
+
+  await initKeycloak()
+
+  const redirectUri = new URL(
+    normalizeReturnTo(returnTo),
+    globalThis.window.location.origin
+  ).toString()
+
+  await keycloak.login({ redirectUri })
+}
+
 const triggerLogoutOnce = async () => {
   if (!isBrowser()) {
     return
@@ -59,12 +93,18 @@ const triggerLogoutOnce = async () => {
   logoutPromise ??= (async () => {
     persistToken(null)
 
+    const currentPath = `${globalThis.window.location.pathname}${globalThis.window.location.search}${globalThis.window.location.hash}`
+    const returnTo = normalizeReturnTo(currentPath)
+
     try {
       await keycloak.logout({
-        redirectUri: `${globalThis.window.location.origin}/login`,
+        redirectUri: new URL(
+          buildLoginHref(returnTo),
+          globalThis.window.location.origin
+        ).toString(),
       })
     } catch {
-      globalThis.window.location.assign("/login")
+      globalThis.window.location.assign(buildLoginHref(returnTo))
     }
   })()
 

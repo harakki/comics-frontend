@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { Geist_Mono, Roboto } from "next/font/google"
 
 import "./globals.css"
@@ -26,7 +27,9 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <div className="flex min-h-svh flex-col">
-            <AppHeader />
+            <Suspense fallback={null}>
+              <AppHeader />
+            </Suspense>
             <main className="flex-1">{children}</main>
           </div>
         </ThemeProvider>

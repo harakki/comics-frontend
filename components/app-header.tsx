@@ -1,11 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { hasAuthToken, initKeycloak } from "@/lib/axios-instance"
+import { buildLoginHref, hasAuthToken, initKeycloak } from "@/lib/axios-instance"
 import { cn } from "@/lib/utils"
 
 type NavItem = {
@@ -25,6 +25,7 @@ const navLinkClassName =
 
 export function AppHeader() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -49,6 +50,10 @@ export function AppHeader() {
 
   const isProfileActive =
     pathname === "/profile" || pathname.startsWith("/profile/")
+  const currentPath = searchParams.toString()
+    ? `${pathname}?${searchParams.toString()}`
+    : pathname
+  const loginHref = buildLoginHref(currentPath)
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false)
   }
@@ -91,7 +96,7 @@ export function AppHeader() {
             </Link>
           ) : (
             <Button asChild size="sm">
-              <Link href="/login">Войти</Link>
+              <Link href={loginHref}>Войти</Link>
             </Button>
           )}
         </nav>
@@ -147,7 +152,7 @@ export function AppHeader() {
               </Link>
             ) : (
               <Button asChild size="sm" className="mt-2 w-full">
-                <Link href="/login" onClick={closeMobileMenu}>
+                <Link href={loginHref} onClick={closeMobileMenu}>
                   Войти
                 </Link>
               </Button>
