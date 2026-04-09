@@ -40,6 +40,7 @@ const mapWeeklyPopularToCard = (
 ): TitleCardProps => ({
   id: title.titleId,
   titleId: title.titleId,
+  mainCoverMediaId: title.mainCoverMediaId,
   name: title.name,
   slug: title.slug,
 })

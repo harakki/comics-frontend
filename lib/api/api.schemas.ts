@@ -541,6 +541,8 @@ export interface PagedModelAuthorResponse {
 export interface WeeklyPopularTitleResponse {
   /** Title unique identifier */
   titleId?: string
+  /** Main cover media unique identifier */
+  mainCoverMediaId?: string
   /** Title name */
   name?: string
   /** Title slug */
