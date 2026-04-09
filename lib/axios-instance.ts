@@ -18,6 +18,8 @@ const keycloak = new Keycloak({
   clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || "",
 })
 
+const AUTH_TOKEN_STORAGE_KEY = "keycloak-token"
+
 type RetryableAxiosRequestConfig = AxiosRequestConfig & { _retry?: boolean }
 
 let keycloakInitPromise: Promise<boolean> | null = null
@@ -32,11 +34,11 @@ const persistToken = (token: string | null) => {
   }
 
   if (token) {
-    localStorage.setItem("keycloak-token", token)
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token)
     return
   }
 
-  localStorage.removeItem("keycloak-token")
+  localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY)
 }
 
 const getToken = () => {
@@ -44,8 +46,10 @@ const getToken = () => {
     return null
   }
 
-  return keycloak.token ?? localStorage.getItem("keycloak-token")
+  return keycloak.token ?? localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
 }
+
+export const hasAuthToken = () => Boolean(getToken())
 
 const triggerLogoutOnce = async () => {
   if (!isBrowser()) {
