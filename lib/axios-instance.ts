@@ -49,7 +49,50 @@ const getToken = () => {
   return keycloak.token ?? localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)
 }
 
-export const hasAuthToken = () => Boolean(getToken())
+export const getAuthToken = () => getToken()
+
+export const hasAuthToken = () => Boolean(getAuthToken())
+
+export type AuthTokenClaims = {
+  sub?: string
+  name?: string
+  preferred_username?: string
+  given_name?: string
+  family_name?: string
+  email?: string
+  email_verified?: boolean
+  realm_access?: {
+    roles?: string[]
+  }
+  resource_access?: Record<string, { roles?: string[] }>
+}
+
+const decodeBase64Url = (value: string) => {
+  const normalized = value.replaceAll("-", "+").replaceAll("_", "/")
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=")
+
+  return globalThis.atob(padded)
+}
+
+export const getAuthTokenClaims = (): AuthTokenClaims | null => {
+  const token = getAuthToken()
+
+  if (!token) {
+    return null
+  }
+
+  try {
+    const payload = token.split(".")[1]
+
+    if (!payload) {
+      return null
+    }
+
+    return JSON.parse(decodeBase64Url(payload)) as AuthTokenClaims
+  } catch {
+    return null
+  }
+}
 
 const normalizeReturnTo = (returnTo?: string) => {
   if (
