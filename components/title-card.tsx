@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { MediaImage } from "@/components/ui/media-image"
 import { CONTENT_RATING_LABELS, TITLE_TYPE_LABELS } from "@/lib/constants"
 
-type TitleCardProps = {
+export type TitleCardProps = {
   id?: string
   titleId?: string
   name?: string
