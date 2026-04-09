@@ -1,4 +1,9 @@
-import axios, { type AxiosRequestConfig } from "axios"
+import axios, {
+  type AxiosError,
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
+} from "axios"
+import Keycloak from "keycloak-js"
 
 export const AXIOS_INSTANCE = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
@@ -7,11 +12,106 @@ export const AXIOS_INSTANCE = axios.create({
   },
 })
 
-AXIOS_INSTANCE.interceptors.request.use((config) => {
-  const token =
-    globalThis.window === undefined
-      ? null
-      : localStorage.getItem("keycloak-token")
+const keycloak = new Keycloak({
+  url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || "",
+  realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM || "",
+  clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || "",
+})
+
+type RetryableAxiosRequestConfig = AxiosRequestConfig & { _retry?: boolean }
+
+let keycloakInitPromise: Promise<boolean> | null = null
+let refreshTokenPromise: Promise<string | null> | null = null
+let logoutPromise: Promise<void> | null = null
+
+const isBrowser = () => globalThis.window !== undefined
+
+const persistToken = (token: string | null) => {
+  if (!isBrowser()) {
+    return
+  }
+
+  if (token) {
+    localStorage.setItem("keycloak-token", token)
+    return
+  }
+
+  localStorage.removeItem("keycloak-token")
+}
+
+const getToken = () => {
+  if (!isBrowser()) {
+    return null
+  }
+
+  return keycloak.token ?? localStorage.getItem("keycloak-token")
+}
+
+const triggerLogoutOnce = async () => {
+  if (!isBrowser()) {
+    return
+  }
+
+  logoutPromise ??= (async () => {
+    persistToken(null)
+
+    try {
+      await keycloak.logout({
+        redirectUri: `${globalThis.window.location.origin}/login`,
+      })
+    } catch {
+      globalThis.window.location.assign("/login")
+    }
+  })()
+
+  return logoutPromise
+}
+
+export const initKeycloak = () => {
+  if (!isBrowser()) {
+    return Promise.resolve(false)
+  }
+
+  keycloakInitPromise ??= keycloak
+    .init({
+      onLoad: "check-sso",
+    })
+    .then((authenticated) => {
+      persistToken(keycloak.token ?? null)
+      return authenticated
+    })
+    .catch(() => false)
+
+  return keycloakInitPromise
+}
+
+const refreshAccessToken = async () => {
+  if (!isBrowser()) {
+    return null
+  }
+
+  await initKeycloak()
+
+  refreshTokenPromise ??= keycloak
+    .updateToken(30)
+    .then(() => {
+      const nextToken = keycloak.token ?? null
+      persistToken(nextToken)
+      return nextToken
+    })
+    .catch(() => {
+      persistToken(null)
+      return null
+    })
+    .finally(() => {
+      refreshTokenPromise = null
+    })
+
+  return refreshTokenPromise
+}
+
+AXIOS_INSTANCE.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = getToken()
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -20,7 +120,40 @@ AXIOS_INSTANCE.interceptors.request.use((config) => {
   return config
 })
 
-// Мутатор Orval должен быть экспортированной функцией с установленным именем
+AXIOS_INSTANCE.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as RetryableAxiosRequestConfig | undefined
+
+    if (
+      !originalRequest ||
+      error.response?.status !== 401 ||
+      originalRequest._retry
+    ) {
+      if (error.response?.status === 401 && originalRequest?._retry) {
+        await triggerLogoutOnce()
+      }
+
+      throw error
+    }
+
+    originalRequest._retry = true
+
+    const freshToken = await refreshAccessToken()
+
+    if (!freshToken) {
+      await triggerLogoutOnce()
+      throw error
+    }
+
+    originalRequest.headers = originalRequest.headers ?? {}
+    originalRequest.headers.Authorization = `Bearer ${freshToken}`
+
+    return AXIOS_INSTANCE(originalRequest)
+  },
+)
+
+// Мутатор для Orval
 export const customInstance = async <T>(
   config: AxiosRequestConfig,
   options?: AxiosRequestConfig
