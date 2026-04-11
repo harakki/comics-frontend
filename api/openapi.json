@@ -3,55 +3,25 @@
   "info": {
     "title": "Comics API",
     "description": "RESTful API for managing comics service.",
-    "contact": {
-      "name": "harakki",
-      "url": "https://github.com/harakki"
-    },
-    "version": "1.0.1"
+    "contact": { "name": "harakki", "url": "https://github.com/harakki" },
+    "version": "2.0.0"
   },
   "servers": [
-    {
-      "url": "http://localhost:8080",
-      "description": "Generated server url"
-    }
+    { "url": "http://localhost:8080", "description": "Generated server url" }
   ],
   "tags": [
-    {
-      "name": "Analytics",
-      "description": "User interactions statistics"
-    },
-    {
-      "name": "Library",
-      "description": "User's personal library management"
-    },
-    {
-      "name": "Publishers",
-      "description": "Publishing houses management"
-    },
+    { "name": "Analytics", "description": "User interactions statistics" },
+    { "name": "Library", "description": "User's personal library management" },
+    { "name": "Publishers", "description": "Publishing houses management" },
     {
       "name": "Recommendations",
       "description": "Personalized recommendations"
     },
-    {
-      "name": "Chapters",
-      "description": "Title chapters management"
-    },
-    {
-      "name": "Tags",
-      "description": "Tags management"
-    },
-    {
-      "name": "Titles",
-      "description": "Graphic literature management"
-    },
-    {
-      "name": "Collections",
-      "description": "User collections management"
-    },
-    {
-      "name": "Media",
-      "description": "S3 objects management"
-    },
+    { "name": "Chapters", "description": "Title chapters management" },
+    { "name": "Tags", "description": "Tags management" },
+    { "name": "Titles", "description": "Graphic literature management" },
+    { "name": "Collections", "description": "User collections management" },
+    { "name": "Media", "description": "S3 objects management" },
     {
       "name": "User Library",
       "description": "Public access to user libraries"
@@ -73,10 +43,7 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
@@ -100,24 +67,12 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/titles": {
@@ -131,22 +86,14 @@
             "in": "query",
             "description": "Zero-based page index (0..N)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            }
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
           },
           {
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10,
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "default": 10, "minimum": 1 }
           },
           {
             "name": "sort",
@@ -155,10 +102,8 @@
             "required": false,
             "schema": {
               "type": "array",
-              "default": ["name,ASC"],
-              "items": {
-                "type": "string"
-              }
+              "default": ["updatedAt,DESC", "createdAt,DESC"],
+              "items": { "type": "string" }
             }
           },
           {
@@ -198,19 +143,19 @@
             "name": "releaseYear",
             "in": "query",
             "description": "Release year",
-            "schema": { "type": "integer", "example": 2018 }
+            "schema": { "type": "number", "example": "2018" }
           },
           {
             "name": "yearFrom",
             "in": "query",
             "description": "Min release year",
-            "schema": { "type": "integer", "example": 2000 }
+            "schema": { "type": "number", "example": "2000" }
           },
           {
             "name": "yearTo",
             "in": "query",
             "description": "Max release year",
-            "schema": { "type": "integer", "example": 2020 }
+            "schema": { "type": "number", "example": "2020" }
           },
           {
             "name": "contentRating",
@@ -230,9 +175,7 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" }
         }
       },
       "post": {
@@ -242,9 +185,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TitleCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/TitleCreateRequest" }
             }
           },
           "required": true
@@ -254,30 +195,16 @@
             "description": "Title created successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TitleResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TitleResponse" }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/titles/{titleId}/chapters": {
@@ -291,10 +218,7 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -311,9 +235,7 @@
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "post": {
@@ -326,44 +248,25 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChapterCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ChapterCreateRequest" }
             }
           },
           "required": true
         },
         "responses": {
-          "201": {
-            "description": "Chapter created"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "201": { "description": "Chapter created" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/tags": {
@@ -377,22 +280,14 @@
             "in": "query",
             "description": "Zero-based page index (0..N)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            }
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
           },
           {
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10,
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "default": 10, "minimum": 1 }
           },
           {
             "name": "sort",
@@ -402,9 +297,7 @@
             "schema": {
               "type": "array",
               "default": ["name,ASC"],
-              "items": {
-                "type": "string"
-              }
+              "items": { "type": "string" }
             }
           }
         ],
@@ -419,9 +312,7 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" }
         }
       },
       "post": {
@@ -431,9 +322,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TagCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/TagCreateRequest" }
             }
           },
           "required": true
@@ -443,30 +332,16 @@
             "description": "Tag created",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TagResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TagResponse" }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/publishers": {
@@ -480,22 +355,14 @@
             "in": "query",
             "description": "Zero-based page index (0..N)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            }
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
           },
           {
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10,
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "default": 10, "minimum": 1 }
           },
           {
             "name": "sort",
@@ -505,9 +372,7 @@
             "schema": {
               "type": "array",
               "default": ["name,ASC"],
-              "items": {
-                "type": "string"
-              }
+              "items": { "type": "string" }
             }
           },
           {
@@ -520,10 +385,7 @@
             "name": "country",
             "in": "query",
             "description": "Filter by Country ISO Code",
-            "schema": {
-              "type": "string",
-              "example": "JP"
-            }
+            "schema": { "type": "string", "example": "JP" }
           }
         ],
         "responses": {
@@ -537,9 +399,7 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" }
         }
       },
       "post": {
@@ -561,30 +421,16 @@
             "description": "Publisher created",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublisherResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/PublisherResponse" }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/media/upload-url": {
@@ -595,9 +441,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MediaUploadUrlRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/MediaUploadUrlRequest" }
             }
           },
           "required": true
@@ -613,21 +457,11 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/collections": {
@@ -641,43 +475,28 @@
             "in": "query",
             "description": "Search query",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           },
           {
             "name": "page",
             "in": "query",
             "description": "Zero-based page index (0..N)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            }
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
           },
           {
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 20,
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "default": 20, "minimum": 1 }
           },
           {
             "name": "sort",
             "in": "query",
             "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
             "required": false,
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
+            "schema": { "type": "array", "items": { "type": "string" } }
           }
         ],
         "responses": {
@@ -718,18 +537,10 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "400": { "$ref": "#/components/responses/BadRequest" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/collections/{id}/titles/{titleId}": {
@@ -743,20 +554,14 @@
             "in": "path",
             "description": "Collection UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "titleId",
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -770,21 +575,11 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       },
       "delete": {
         "tags": ["Collections"],
@@ -796,20 +591,14 @@
             "in": "path",
             "description": "Collection UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "titleId",
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -823,21 +612,11 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/chapters/{chapterId}/read": {
@@ -851,18 +630,13 @@
             "in": "path",
             "description": "Chapter UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChapterReadRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ChapterReadRequest" }
             }
           },
           "required": true
@@ -872,24 +646,14 @@
             "description": "Chapter marked as read, next unread chapter returned",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NextChapterResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/NextChapterResponse" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/authors": {
@@ -903,22 +667,14 @@
             "in": "query",
             "description": "Zero-based page index (0..N)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            }
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
           },
           {
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10,
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "default": 10, "minimum": 1 }
           },
           {
             "name": "sort",
@@ -928,28 +684,20 @@
             "schema": {
               "type": "array",
               "default": ["name,ASC"],
-              "items": {
-                "type": "string"
-              }
+              "items": { "type": "string" }
             }
           },
           {
             "name": "search",
             "in": "query",
             "description": "Search by name or slug",
-            "schema": {
-              "type": "string",
-              "example": "fujimoto"
-            }
+            "schema": { "type": "string", "example": "fujimoto" }
           },
           {
             "name": "country",
             "in": "query",
             "description": "Filter by Country ISO Code",
-            "schema": {
-              "type": "string",
-              "example": "JP"
-            }
+            "schema": { "type": "string", "example": "JP" }
           }
         ],
         "responses": {
@@ -963,9 +711,7 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" }
         }
       },
       "post": {
@@ -975,9 +721,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AuthorCreateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/AuthorCreateRequest" }
             }
           },
           "required": true
@@ -987,30 +731,16 @@
             "description": "Author created successfully",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthorResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/AuthorResponse" }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/titles/{id}": {
@@ -1024,10 +754,7 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1035,15 +762,11 @@
             "description": "Title found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TitleResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TitleResponse" }
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "delete": {
@@ -1056,31 +779,16 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Title deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Title deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       },
       "patch": {
         "tags": ["Titles"],
@@ -1092,18 +800,13 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TitleUpdateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/TitleUpdateRequest" }
             }
           },
           "required": true
@@ -1113,30 +816,16 @@
             "description": "Title updated",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TitleResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TitleResponse" }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/tags/{id}": {
@@ -1150,10 +839,7 @@
             "in": "path",
             "description": "Tag UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1161,15 +847,11 @@
             "description": "Tag found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TagResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TagResponse" }
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "delete": {
@@ -1182,31 +864,16 @@
             "in": "path",
             "description": "Tag UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Tag deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Tag deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       },
       "patch": {
         "tags": ["Tags"],
@@ -1218,18 +885,13 @@
             "in": "path",
             "description": "Tag UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TagUpdateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/TagUpdateRequest" }
             }
           },
           "required": true
@@ -1239,30 +901,16 @@
             "description": "Tag updated",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TagResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/TagResponse" }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/publishers/{id}": {
@@ -1276,10 +924,7 @@
             "in": "path",
             "description": "Publisher UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1287,15 +932,11 @@
             "description": "Publisher found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublisherResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/PublisherResponse" }
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "delete": {
@@ -1308,31 +949,16 @@
             "in": "path",
             "description": "Publisher UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Publisher deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Publisher deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       },
       "patch": {
         "tags": ["Publishers"],
@@ -1344,10 +970,7 @@
             "in": "path",
             "description": "Publisher UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
@@ -1365,30 +988,16 @@
             "description": "Publisher updated",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublisherResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/PublisherResponse" }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/collections/{id}": {
@@ -1402,10 +1011,7 @@
             "in": "path",
             "description": "Collection UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1419,15 +1025,9 @@
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       },
       "delete": {
         "tags": ["Collections"],
@@ -1439,31 +1039,16 @@
             "in": "path",
             "description": "Collection UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Collection deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Collection deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       },
       "patch": {
         "tags": ["Collections"],
@@ -1475,10 +1060,7 @@
             "in": "path",
             "description": "Collection UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
@@ -1502,24 +1084,12 @@
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/chapters/{chapterId}": {
@@ -1533,10 +1103,7 @@
             "in": "path",
             "description": "Chapter UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1550,9 +1117,7 @@
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "delete": {
@@ -1565,31 +1130,16 @@
             "in": "path",
             "description": "Chapter UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Chapter deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Chapter deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       },
       "patch": {
         "tags": ["Chapters"],
@@ -1601,44 +1151,25 @@
             "in": "path",
             "description": "Chapter UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChapterUpdateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ChapterUpdateRequest" }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Chapter updated"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "200": { "description": "Chapter updated" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/authors/{id}": {
@@ -1652,10 +1183,7 @@
             "in": "path",
             "description": "Author UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1663,15 +1191,11 @@
             "description": "Author found",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthorResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/AuthorResponse" }
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "delete": {
@@ -1684,31 +1208,16 @@
             "in": "path",
             "description": "Author UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Author deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Author deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       },
       "patch": {
         "tags": ["Authors"],
@@ -1720,18 +1229,13 @@
             "in": "path",
             "description": "Author UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AuthorUpdateRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/AuthorUpdateRequest" }
             }
           },
           "required": true
@@ -1741,30 +1245,16 @@
             "description": "Author updated",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthorResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/AuthorResponse" }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/users/{userId}/library": {
@@ -1778,32 +1268,21 @@
             "in": "path",
             "description": "User UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "page",
             "in": "query",
             "description": "Zero-based page index (0..N)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            }
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
           },
           {
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10,
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "default": 10, "minimum": 1 }
           },
           {
             "name": "sort",
@@ -1813,9 +1292,7 @@
             "schema": {
               "type": "array",
               "default": ["updatedAt,ASC"],
-              "items": {
-                "type": "string"
-              }
+              "items": { "type": "string" }
             }
           }
         ],
@@ -1830,12 +1307,8 @@
               }
             }
           },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -1850,10 +1323,7 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1861,24 +1331,14 @@
             "description": "Next unread chapter",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NextChapterResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/NextChapterResponse" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/titles/{titleId}/analytics": {
@@ -1892,10 +1352,7 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1909,9 +1366,7 @@
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -1926,10 +1381,7 @@
             "in": "query",
             "description": "Max number of recommendations",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
+            "schema": { "type": "integer", "format": "int32" },
             "example": 10
           }
         ],
@@ -1947,18 +1399,10 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/media/{id}/url": {
@@ -1972,10 +1416,7 @@
             "in": "path",
             "description": "Media UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -1990,9 +1431,7 @@
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
     },
@@ -2007,22 +1446,14 @@
             "in": "query",
             "description": "Zero-based page index (0..N)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            }
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
           },
           {
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 10,
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "default": 10, "minimum": 1 }
           },
           {
             "name": "sort",
@@ -2032,9 +1463,7 @@
             "schema": {
               "type": "array",
               "default": ["updatedAt,ASC"],
-              "items": {
-                "type": "string"
-              }
+              "items": { "type": "string" }
             }
           }
         ],
@@ -2049,15 +1478,9 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/library/{titleId}": {
@@ -2071,10 +1494,7 @@
             "in": "path",
             "description": "Title UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -2088,18 +1508,10 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/collections/my": {
@@ -2113,43 +1525,28 @@
             "in": "query",
             "description": "Search query",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           },
           {
             "name": "page",
             "in": "query",
             "description": "Zero-based page index (0..N)",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "minimum": 0
-            }
+            "schema": { "type": "integer", "default": 0, "minimum": 0 }
           },
           {
             "name": "size",
             "in": "query",
             "description": "The size of the page to be returned",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 20,
-              "minimum": 1
-            }
+            "schema": { "type": "integer", "default": 20, "minimum": 1 }
           },
           {
             "name": "sort",
             "in": "query",
             "description": "Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.",
             "required": false,
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
+            "schema": { "type": "array", "items": { "type": "string" } }
           }
         ],
         "responses": {
@@ -2163,15 +1560,9 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/chapters/{chapterId}/read-status": {
@@ -2185,10 +1576,7 @@
             "in": "path",
             "description": "Chapter UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -2202,18 +1590,10 @@
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/analytics/titles/top-weekly": {
@@ -2249,31 +1629,16 @@
             "in": "path",
             "description": "Media UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Media deleted"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Media deleted" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     },
     "/api/v1/library/{entryId}": {
@@ -2287,31 +1652,16 @@
             "in": "path",
             "description": "Library entry UUID",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Title removed from library"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "204": { "description": "Title removed from library" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         },
-        "security": [
-          {
-            "bearer-jwt": []
-          }
-        ]
+        "security": [{ "bearer-jwt": [] }]
       }
     }
   },
@@ -2324,16 +1674,9 @@
             "format": "uri",
             "description": "URI reference identifying the problem type"
           },
-          "title": {
-            "description": "Short human-readable summary"
-          },
-          "status": {
-            "format": "int32",
-            "description": "HTTP status code"
-          },
-          "detail": {
-            "description": "Human-readable explanation"
-          },
+          "title": { "description": "Short human-readable summary" },
+          "status": { "format": "int32", "description": "HTTP status code" },
+          "detail": { "description": "Human-readable explanation" },
           "instance": {
             "format": "uri",
             "description": "URI reference identifying the specific occurrence"
@@ -2354,31 +1697,16 @@
               "RE_READING"
             ]
           },
-          "vote": {
-            "type": "string",
-            "enum": ["LIKE", "DISLIKE"]
-          },
-          "lastReadChapterId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "vote": { "type": "string", "enum": ["LIKE", "DISLIKE"] },
+          "lastReadChapterId": { "type": "string", "format": "uuid" }
         }
       },
       "LibraryEntryResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "titleId": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "userId": { "type": "string", "format": "uuid" },
+          "titleId": { "type": "string", "format": "uuid" },
           "status": {
             "type": "string",
             "enum": [
@@ -2390,37 +1718,18 @@
               "RE_READING"
             ]
           },
-          "vote": {
-            "type": "string",
-            "enum": ["LIKE", "DISLIKE"]
-          },
-          "lastReadChapterId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "vote": { "type": "string", "enum": ["LIKE", "DISLIKE"] },
+          "lastReadChapterId": { "type": "string", "format": "uuid" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
         }
       },
       "TitleCreateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
+          "name": { "type": "string", "minLength": 1 },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
           "type": {
             "type": "string",
             "enum": ["COMIC", "MANGA", "MANHWA", "MANHUA", "ARTBOOK", "NOVEL"]
@@ -2435,21 +1744,13 @@
               "DISCONTINUED"
             ]
           },
-          "releaseYear": {
-            "type": "string"
-          },
+          "releaseYear": { "type": "string" },
           "contentRating": {
             "type": "string",
             "enum": ["SIX_PLUS", "TWELVE_PLUS", "SIXTEEN_PLUS", "EIGHTEEN_PLUS"]
           },
-          "countryIsoCode": {
-            "type": "string",
-            "minLength": 1
-          },
-          "mainCoverMediaId": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "countryIsoCode": { "type": "string", "minLength": 1 },
+          "mainCoverMediaId": { "type": "string", "format": "uuid" },
           "authorIds": {
             "type": "object",
             "additionalProperties": {
@@ -2457,16 +1758,13 @@
               "enum": ["STORY", "ART", "STORY_AND_ART"]
             }
           },
-          "publisherId": {
-            "type": "string",
-            "format": "uuid"
+          "publisherIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
           },
           "tagIds": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
+            "items": { "type": "string", "format": "uuid" },
             "uniqueItems": true
           }
         },
@@ -2481,123 +1779,67 @@
       "AuthorResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "websiteUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "countryIsoCode": {
-            "type": "string"
-          },
-          "mainCoverMediaId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "websiteUrls": { "type": "array", "items": { "type": "string" } },
+          "countryIsoCode": { "type": "string" },
+          "mainCoverMediaId": { "type": "string", "format": "uuid" }
         }
       },
       "PublisherResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "websiteUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "countryIsoCode": {
-            "type": "string"
-          },
-          "logoMediaId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "websiteUrls": { "type": "array", "items": { "type": "string" } },
+          "countryIsoCode": { "type": "string" },
+          "logoMediaId": { "type": "string", "format": "uuid" }
         }
       },
       "TagResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
           "type": {
             "type": "string",
             "enum": ["CONTENT_WARNING", "GENRE", "THEME"]
           },
-          "description": {
-            "type": "string"
-          }
+          "description": { "type": "string" }
         }
       },
       "TitleAuthorResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "author": {
-            "$ref": "#/components/schemas/AuthorResponse"
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "author": { "$ref": "#/components/schemas/AuthorResponse" },
           "role": {
             "type": "string",
             "enum": ["STORY", "ART", "STORY_AND_ART"]
           },
-          "sortOrder": {
-            "type": "integer",
-            "format": "int32"
-          }
+          "sortOrder": { "type": "integer", "format": "int32" }
+        }
+      },
+      "TitlePublisherResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "publisher": { "$ref": "#/components/schemas/PublisherResponse" },
+          "sortOrder": { "type": "integer", "format": "int32" }
         }
       },
       "TitleResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
           "type": {
             "type": "string",
             "enum": ["COMIC", "MANGA", "MANHWA", "MANHUA", "ARTBOOK", "NOVEL"]
@@ -2612,37 +1854,25 @@
               "DISCONTINUED"
             ]
           },
-          "releaseYear": {
-            "type": "string"
-          },
+          "releaseYear": { "type": "string" },
           "contentRating": {
             "type": "string",
             "enum": ["SIX_PLUS", "TWELVE_PLUS", "SIXTEEN_PLUS", "EIGHTEEN_PLUS"]
           },
-          "isLicensed": {
-            "type": "boolean"
-          },
-          "countryIsoCode": {
-            "type": "string"
-          },
-          "mainCoverMediaId": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "isLicensed": { "type": "boolean" },
+          "countryIsoCode": { "type": "string" },
+          "mainCoverMediaId": { "type": "string", "format": "uuid" },
           "authors": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TitleAuthorResponse"
-            }
+            "items": { "$ref": "#/components/schemas/TitleAuthorResponse" }
           },
-          "publisher": {
-            "$ref": "#/components/schemas/PublisherResponse"
+          "publishers": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/TitlePublisherResponse" }
           },
           "tags": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TagResponse"
-            },
+            "items": { "$ref": "#/components/schemas/TagResponse" },
             "uniqueItems": true
           }
         }
@@ -2650,27 +1880,13 @@
       "ChapterCreateRequest": {
         "type": "object",
         "properties": {
-          "number": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "subNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "name": {
-            "type": "string"
-          },
-          "volume": {
-            "type": "integer",
-            "format": "int32"
-          },
+          "number": { "type": "integer", "format": "int32" },
+          "subNumber": { "type": "integer", "format": "int32" },
+          "name": { "type": "string" },
+          "volume": { "type": "integer", "format": "int32" },
           "pages": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
+            "items": { "type": "string", "format": "uuid" },
             "minItems": 1
           }
         },
@@ -2679,49 +1895,25 @@
       "TagCreateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "slug": {
-            "type": "string"
-          },
+          "name": { "type": "string", "minLength": 1 },
+          "slug": { "type": "string" },
           "type": {
             "type": "string",
             "enum": ["CONTENT_WARNING", "GENRE", "THEME"]
           },
-          "description": {
-            "type": "string"
-          }
+          "description": { "type": "string" }
         },
         "required": ["name", "type"]
       },
       "PublisherCreateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "websiteUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "countryIsoCode": {
-            "type": "string"
-          },
-          "logoMediaId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "name": { "type": "string", "minLength": 1 },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "websiteUrls": { "type": "array", "items": { "type": "string" } },
+          "countryIsoCode": { "type": "string" },
+          "logoMediaId": { "type": "string", "format": "uuid" }
         },
         "required": ["name"]
       },
@@ -2733,56 +1925,29 @@
             "maxLength": 255,
             "minLength": 1
           },
-          "contentType": {
-            "type": "string",
-            "minLength": 1
-          },
-          "width": {
-            "type": "integer",
-            "format": "int32",
-            "maximum": 4100
-          },
-          "height": {
-            "type": "integer",
-            "format": "int32"
-          }
+          "contentType": { "type": "string", "minLength": 1 },
+          "width": { "type": "integer", "format": "int32", "maximum": 4100 },
+          "height": { "type": "integer", "format": "int32" }
         },
         "required": ["contentType", "height", "originalFilename", "width"]
       },
       "MediaUploadUrlResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "url": {
-            "type": "string"
-          },
-          "s3Key": {
-            "type": "string"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "url": { "type": "string" },
+          "s3Key": { "type": "string" }
         }
       },
       "CollectionCreateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "description": {
-            "type": "string"
-          },
-          "isPublic": {
-            "type": "boolean"
-          },
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "isPublic": { "type": "boolean" },
           "titleIds": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "items": { "type": "string", "format": "uuid" }
           }
         },
         "required": ["isPublic", "name"]
@@ -2790,47 +1955,23 @@
       "UserCollectionResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "authorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "isPublic": {
-            "type": "boolean"
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "authorId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "isPublic": { "type": "boolean" },
           "titleIds": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "items": { "type": "string", "format": "uuid" }
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
         }
       },
       "ChapterReadRequest": {
         "type": "object",
         "properties": {
-          "readTimeMillis": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "readTimeMillis": { "type": "integer", "format": "int64" }
         }
       },
       "NextChapterResponse": {
@@ -2863,46 +2004,25 @@
       "AuthorCreateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "websiteUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
+          "name": { "type": "string", "minLength": 1 },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "websiteUrls": { "type": "array", "items": { "type": "string" } },
           "countryIsoCode": {
             "type": "string",
             "maxLength": 2,
             "minLength": 2
           },
-          "mainCoverMediaId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "mainCoverMediaId": { "type": "string", "format": "uuid" }
         },
         "required": ["name"]
       },
       "TitleUpdateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
           "type": {
             "type": "string",
             "enum": ["COMIC", "MANGA", "MANHWA", "MANHUA", "ARTBOOK", "NOVEL"]
@@ -2917,20 +2037,13 @@
               "DISCONTINUED"
             ]
           },
-          "releaseYear": {
-            "type": "string"
-          },
+          "releaseYear": { "type": "string" },
           "contentRating": {
             "type": "string",
             "enum": ["SIX_PLUS", "TWELVE_PLUS", "SIXTEEN_PLUS", "EIGHTEEN_PLUS"]
           },
-          "countryIsoCode": {
-            "type": "string"
-          },
-          "mainCoverMediaId": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "countryIsoCode": { "type": "string" },
+          "mainCoverMediaId": { "type": "string", "format": "uuid" },
           "authorIds": {
             "type": "object",
             "additionalProperties": {
@@ -2938,16 +2051,13 @@
               "enum": ["STORY", "ART", "STORY_AND_ART"]
             }
           },
-          "publisherId": {
-            "type": "string",
-            "format": "uuid"
+          "publisherIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
           },
           "tagIds": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
+            "items": { "type": "string", "format": "uuid" },
             "uniqueItems": true
           }
         }
@@ -2955,135 +2065,65 @@
       "TagUpdateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
           "type": {
             "type": "string",
             "enum": ["CONTENT_WARNING", "GENRE", "THEME"]
           },
-          "description": {
-            "type": "string"
-          }
+          "description": { "type": "string" }
         }
       },
       "PublisherUpdateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "websiteUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "countryIsoCode": {
-            "type": "string"
-          },
-          "logoMediaId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "websiteUrls": { "type": "array", "items": { "type": "string" } },
+          "countryIsoCode": { "type": "string" },
+          "logoMediaId": { "type": "string", "format": "uuid" }
         }
       },
       "CollectionUpdateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "isPublic": {
-            "type": "boolean"
-          },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "isPublic": { "type": "boolean" },
           "titleIds": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "items": { "type": "string", "format": "uuid" }
           }
         }
       },
       "ChapterUpdateRequest": {
         "type": "object",
         "properties": {
-          "number": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "subNumber": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "name": {
-            "type": "string"
-          },
-          "volume": {
-            "type": "integer",
-            "format": "int32"
-          }
+          "number": { "type": "integer", "format": "int32" },
+          "subNumber": { "type": "integer", "format": "int32" },
+          "name": { "type": "string" },
+          "volume": { "type": "integer", "format": "int32" }
         }
       },
       "AuthorUpdateRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "websiteUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "countryIsoCode": {
-            "type": "string"
-          },
-          "mainCoverMediaId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "description": { "type": "string" },
+          "websiteUrls": { "type": "array", "items": { "type": "string" } },
+          "countryIsoCode": { "type": "string" },
+          "mainCoverMediaId": { "type": "string", "format": "uuid" }
         }
       },
       "PageMetadata": {
         "type": "object",
         "properties": {
-          "size": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "number": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "totalElements": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int64"
-          }
+          "size": { "type": "integer", "format": "int64" },
+          "number": { "type": "integer", "format": "int64" },
+          "totalElements": { "type": "integer", "format": "int64" },
+          "totalPages": { "type": "integer", "format": "int64" }
         }
       },
       "PagedModelTitleResponse": {
@@ -3091,32 +2131,18 @@
         "properties": {
           "content": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TitleResponse"
-            }
+            "items": { "$ref": "#/components/schemas/TitleResponse" }
           },
-          "page": {
-            "$ref": "#/components/schemas/PageMetadata"
-          }
+          "page": { "$ref": "#/components/schemas/PageMetadata" }
         }
       },
       "ChapterSummaryResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "displayNumber": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "volume": {
-            "type": "integer",
-            "format": "int32"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "displayNumber": { "type": "string" },
+          "name": { "type": "string" },
+          "volume": { "type": "integer", "format": "int32" }
         }
       },
       "TitleAnalyticsResponse": {
@@ -3154,39 +2180,20 @@
         "properties": {
           "content": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TagResponse"
-            }
+            "items": { "$ref": "#/components/schemas/TagResponse" }
           },
-          "page": {
-            "$ref": "#/components/schemas/PageMetadata"
-          }
+          "page": { "$ref": "#/components/schemas/PageMetadata" }
         }
       },
       "PersonalRecommendationResponse": {
         "type": "object",
         "properties": {
-          "titleId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "mainCoverMediaId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "slug": {
-            "type": "string"
-          },
-          "score": {
-            "type": "number",
-            "format": "double"
-          },
-          "reason": {
-            "type": "string"
-          }
+          "titleId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "mainCoverMediaId": { "type": "string", "format": "uuid" },
+          "slug": { "type": "string" },
+          "score": { "type": "number", "format": "double" },
+          "reason": { "type": "string" }
         }
       },
       "PagedModelPublisherResponse": {
@@ -3194,13 +2201,9 @@
         "properties": {
           "content": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PublisherResponse"
-            }
+            "items": { "$ref": "#/components/schemas/PublisherResponse" }
           },
-          "page": {
-            "$ref": "#/components/schemas/PageMetadata"
-          }
+          "page": { "$ref": "#/components/schemas/PageMetadata" }
         }
       },
       "PagedModelLibraryEntryResponse": {
@@ -3208,13 +2211,9 @@
         "properties": {
           "content": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LibraryEntryResponse"
-            }
+            "items": { "$ref": "#/components/schemas/LibraryEntryResponse" }
           },
-          "page": {
-            "$ref": "#/components/schemas/PageMetadata"
-          }
+          "page": { "$ref": "#/components/schemas/PageMetadata" }
         }
       },
       "PagedModelUserCollectionResponse": {
@@ -3222,66 +2221,33 @@
         "properties": {
           "content": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UserCollectionResponse"
-            }
+            "items": { "$ref": "#/components/schemas/UserCollectionResponse" }
           },
-          "page": {
-            "$ref": "#/components/schemas/PageMetadata"
-          }
+          "page": { "$ref": "#/components/schemas/PageMetadata" }
         }
       },
       "ChapterDetailsResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "titleId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "displayNumber": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "titleId": { "type": "string", "format": "uuid" },
+          "displayNumber": { "type": "string" },
+          "name": { "type": "string" },
           "pages": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PageResponse"
-            }
+            "items": { "$ref": "#/components/schemas/PageResponse" }
           },
-          "prevChapterId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "nextChapterId": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "prevChapterId": { "type": "string", "format": "uuid" },
+          "nextChapterId": { "type": "string", "format": "uuid" }
         }
       },
       "PageResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "mediaId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "url": {
-            "type": "string"
-          },
-          "pageOrder": {
-            "type": "integer",
-            "format": "int32"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "mediaId": { "type": "string", "format": "uuid" },
+          "url": { "type": "string" },
+          "pageOrder": { "type": "integer", "format": "int32" }
         }
       },
       "ChapterReadStatusResponse": {
@@ -3306,13 +2272,9 @@
         "properties": {
           "content": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AuthorResponse"
-            }
+            "items": { "$ref": "#/components/schemas/AuthorResponse" }
           },
-          "page": {
-            "$ref": "#/components/schemas/PageMetadata"
-          }
+          "page": { "$ref": "#/components/schemas/PageMetadata" }
         }
       },
       "WeeklyPopularTitleResponse": {
@@ -3323,6 +2285,12 @@
             "type": "string",
             "format": "uuid",
             "description": "Title unique identifier",
+            "example": "019b9d1e-bc3a-70f3-8520-36e8d82dc9e0"
+          },
+          "mainCoverMediaId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Main cover media unique identifier",
             "example": "019b9d1e-bc3a-70f3-8520-36e8d82dc9e0"
           },
           "name": {
@@ -3351,29 +2319,15 @@
       }
     },
     "responses": {
-      "InternalServerError": {
-        "description": "Unexpected server error",
-        "content": {
-          "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ProblemDetail"
-            }
-          }
-        }
-      },
       "Conflict": {
         "description": "Resource conflict (e.g., duplicate)",
         "content": {
           "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ProblemDetail"
-            }
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
           }
         }
       },
-      "Forbidden": {
-        "description": "Insufficient permissions"
-      },
+      "Forbidden": { "description": "Insufficient permissions" },
       "Unauthorized": {
         "description": "Missing or invalid authentication token"
       },
@@ -3381,9 +2335,7 @@
         "description": "Resource not found",
         "content": {
           "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ProblemDetail"
-            }
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
           }
         }
       },
@@ -3391,9 +2343,15 @@
         "description": "Validation error or malformed request",
         "content": {
           "application/problem+json": {
-            "schema": {
-              "$ref": "#/components/schemas/ProblemDetail"
-            }
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Unexpected server error",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
           }
         }
       }

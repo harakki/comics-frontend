@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Comics API
  * RESTful API for managing comics service.
- * OpenAPI spec version: 1.0.1
+ * OpenAPI spec version: 2.0.0
  */
 /**
  * RFC 9457 Problem Details
@@ -128,7 +128,7 @@ export interface TitleCreateRequest {
   countryIsoCode: string
   mainCoverMediaId?: string
   authorIds?: TitleCreateRequestAuthorIds
-  publisherId?: string
+  publisherIds?: string[]
   tagIds?: string[]
 }
 
@@ -185,6 +185,12 @@ export interface TitleAuthorResponse {
   sortOrder?: number
 }
 
+export interface TitlePublisherResponse {
+  id?: string
+  publisher?: PublisherResponse
+  sortOrder?: number
+}
+
 export type TitleResponseType =
   (typeof TitleResponseType)[keyof typeof TitleResponseType]
 
@@ -231,7 +237,7 @@ export interface TitleResponse {
   countryIsoCode?: string
   mainCoverMediaId?: string
   authors?: TitleAuthorResponse[]
-  publisher?: PublisherResponse
+  publishers?: TitlePublisherResponse[]
   tags?: TagResponse[]
 }
 
@@ -389,7 +395,7 @@ export interface TitleUpdateRequest {
   countryIsoCode?: string
   mainCoverMediaId?: string
   authorIds?: TitleUpdateRequestAuthorIds
-  publisherId?: string
+  publisherIds?: string[]
   tagIds?: string[]
 }
 
@@ -554,11 +560,6 @@ export interface WeeklyPopularTitleResponse {
 }
 
 /**
- * Unexpected server error
- */
-export type InternalServerErrorResponse = ProblemDetail
-
-/**
  * Resource conflict (e.g., duplicate)
  */
 export type ConflictResponse = ProblemDetail
@@ -582,6 +583,11 @@ export type NotFoundResponse = ProblemDetail
  * Validation error or malformed request
  */
 export type BadRequestResponse = ProblemDetail
+
+/**
+ * Unexpected server error
+ */
+export type InternalServerErrorResponse = ProblemDetail
 
 export type SearchTitlesParams = {
   /**
