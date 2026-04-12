@@ -7,12 +7,12 @@ import { TitleCardGrid } from "@/components/title-card-grid"
 import { Button } from "@/components/ui/button"
 import type { TitleCardProps } from "@/components/title-card"
 import {
-  TitleResponseContentRating,
-  TitleResponseTitleStatus,
-  TitleResponseType,
   type SearchTitlesParams,
   type TagResponse,
   type TitleResponse,
+  TitleResponseContentRating,
+  TitleResponseTitleStatus,
+  TitleResponseType,
 } from "@/lib/api/api.schemas"
 import { getTags } from "@/lib/api/tags/tags"
 import { getTitles } from "@/lib/api/titles/titles"
@@ -314,6 +314,63 @@ export default function CatalogPage() {
     }, new Map())
   }, [tags])
 
+  const tagsBySlug = useMemo(() => {
+    return tags.reduce<Map<string, string>>((acc, tag) => {
+      if (tag.slug) {
+        acc.set(tag.slug, tag.name || "Без названия")
+      }
+
+      return acc
+    }, new Map())
+  }, [tags])
+
+  // Resolve incoming filter tag values (which may be slugs) to tag ids
+  const resolvedTagIds = useMemo(() => {
+    if (!filters.tags || filters.tags.length === 0) return []
+
+    const bySlug = new Map<string, string>()
+    const byId = new Set<string>()
+
+    tags.forEach((t) => {
+      if (t.id) {
+        byId.add(t.id)
+        bySlug.set(t.id, t.id)
+      }
+
+      if (t.slug && t.id) {
+        bySlug.set(t.slug, t.id)
+      }
+
+      if (t.name && t.id) {
+        bySlug.set(t.name.toLowerCase(), t.id)
+      }
+    })
+
+    const result: string[] = []
+
+    filters.tags.forEach((raw) => {
+      const key = raw || ""
+      const resolvedId = bySlug.get(key) || bySlug.get(key.toLowerCase())
+
+      if (resolvedId && !result.includes(resolvedId)) {
+        result.push(resolvedId)
+        return
+      }
+
+      // Keep legacy id-based URLs working if id exists in loaded tags
+      if (byId.has(key) && !result.includes(key)) {
+        result.push(key)
+      }
+    })
+
+    return result
+  }, [filters.tags, tags])
+
+  const resolvedFilters = useMemo(
+    () => ({ ...filters, tags: resolvedTagIds }),
+    [filters, resolvedTagIds]
+  )
+
   const filteredTags = useMemo(() => {
     const searchTerm = tagSearchValue.trim().toLowerCase()
 
@@ -325,7 +382,10 @@ export default function CatalogPage() {
       const normalizedName = (tag.name || "").toLowerCase()
       const normalizedSlug = (tag.slug || "").toLowerCase()
 
-      return normalizedName.includes(searchTerm) || normalizedSlug.includes(searchTerm)
+      return (
+        normalizedName.includes(searchTerm) ||
+        normalizedSlug.includes(searchTerm)
+      )
     })
   }, [tagSearchValue, tags])
 
@@ -333,7 +393,11 @@ export default function CatalogPage() {
     const chips: ActiveFilterChip[] = []
 
     if (filters.search) {
-      chips.push({ id: "search", key: "search", label: `Поиск: ${filters.search}` })
+      chips.push({
+        id: "search",
+        key: "search",
+        label: `Поиск: ${filters.search}`,
+      })
     }
 
     if (filters.type) {
@@ -353,7 +417,11 @@ export default function CatalogPage() {
     }
 
     if (filters.country) {
-      chips.push({ id: "country", key: "country", label: `Страна: ${filters.country}` })
+      chips.push({
+        id: "country",
+        key: "country",
+        label: `Страна: ${filters.country}`,
+      })
     }
 
     if (filters.releaseYear) {
@@ -365,11 +433,19 @@ export default function CatalogPage() {
     }
 
     if (filters.yearFrom) {
-      chips.push({ id: "yearFrom", key: "yearFrom", label: `Год от: ${filters.yearFrom}` })
+      chips.push({
+        id: "yearFrom",
+        key: "yearFrom",
+        label: `Год от: ${filters.yearFrom}`,
+      })
     }
 
     if (filters.yearTo) {
-      chips.push({ id: "yearTo", key: "yearTo", label: `Год до: ${filters.yearTo}` })
+      chips.push({
+        id: "yearTo",
+        key: "yearTo",
+        label: `Год до: ${filters.yearTo}`,
+      })
     }
 
     if (filters.contentRating) {
@@ -392,12 +468,12 @@ export default function CatalogPage() {
       chips.push({
         id: `tag-${tagId}`,
         tagId,
-        label: `Тег: ${tagsById.get(tagId) || tagId}`,
+        label: `Тег: ${tagsBySlug.get(tagId) || tagsById.get(tagId) || tagId}`,
       })
     })
 
     return chips
-  }, [filters, tagsById])
+  }, [filters, tagsById, tagsBySlug])
 
   const paginationItems = useMemo(
     () => buildPaginationItems(currentPage, totalPages),
@@ -449,11 +525,16 @@ export default function CatalogPage() {
     let isMounted = true
 
     const loadTitles = async () => {
+      // Wait for tags dictionary before requesting with tag filters.
+      if (filters.tags.length > 0 && isTagsLoading) {
+        return
+      }
+
       setIsLoading(true)
 
       try {
         const response = await getTitles().searchTitles(
-          buildRequestParams(filters, currentPage)
+          buildRequestParams(resolvedFilters, currentPage)
         )
 
         if (!isMounted) {
@@ -486,9 +567,11 @@ export default function CatalogPage() {
     return () => {
       isMounted = false
     }
-  }, [currentPage, filters, router])
+  }, [currentPage, filters, isTagsLoading, resolvedFilters, router])
 
-  const handleApplyFilters: React.ComponentProps<"form">["onSubmit"] = (event) => {
+  const handleApplyFilters: React.ComponentProps<"form">["onSubmit"] = (
+    event
+  ) => {
     if (!event) {
       return
     }
@@ -497,10 +580,15 @@ export default function CatalogPage() {
 
     const formData = new FormData(event.currentTarget)
     const nextFilters: CatalogFilters = {
-      search: getFormString(formData, "search").trim().slice(0, MAX_QUERY_LENGTH),
+      search: getFormString(formData, "search")
+        .trim()
+        .slice(0, MAX_QUERY_LENGTH),
       type: getFormString(formData, "type").trim(),
       titleStatus: getFormString(formData, "titleStatus").trim(),
-      country: getFormString(formData, "country").trim().toUpperCase().slice(0, 2),
+      country: getFormString(formData, "country")
+        .trim()
+        .toUpperCase()
+        .slice(0, 2),
       releaseYear: getFormString(formData, "releaseYear").trim(),
       yearFrom: getFormString(formData, "yearFrom").trim(),
       yearTo: getFormString(formData, "yearTo").trim(),
@@ -573,7 +661,12 @@ export default function CatalogPage() {
                 {chip.label} x
               </Button>
             ))}
-            <Button type="button" size="sm" variant="ghost" onClick={handleResetFilters}>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={handleResetFilters}
+            >
               Очистить все
             </Button>
           </div>
@@ -659,11 +752,13 @@ export default function CatalogPage() {
                 className="h-9 w-full rounded-md border bg-background px-3 text-sm"
               >
                 <option value="">Любой</option>
-                {Object.values(TitleResponseContentRating).map((ratingValue) => (
-                  <option key={ratingValue} value={ratingValue}>
-                    {CONTENT_RATING_LABELS[ratingValue] || ratingValue}
-                  </option>
-                ))}
+                {Object.values(TitleResponseContentRating).map(
+                  (ratingValue) => (
+                    <option key={ratingValue} value={ratingValue}>
+                      {CONTENT_RATING_LABELS[ratingValue] || ratingValue}
+                    </option>
+                  )
+                )}
               </select>
             </label>
 
@@ -749,6 +844,11 @@ export default function CatalogPage() {
                       return null
                     }
 
+                    const tagFilterValue = tag.slug || tag.id
+                    const isTagChecked =
+                      filters.tags.includes(tagFilterValue) ||
+                      (tag.id ? filters.tags.includes(tag.id) : false)
+
                     return (
                       <label
                         key={tag.id}
@@ -757,12 +857,14 @@ export default function CatalogPage() {
                         <input
                           type="checkbox"
                           name="tags"
-                          value={tag.id}
-                          defaultChecked={filters.tags.includes(tag.id)}
+                          value={tagFilterValue}
+                          defaultChecked={isTagChecked}
                         />
                         <span>{tag.name || "Без названия"}</span>
                         {tag.slug ? (
-                          <span className="text-xs text-muted-foreground">/{tag.slug}</span>
+                          <span className="text-xs text-muted-foreground">
+                            /{tag.slug}
+                          </span>
                         ) : null}
                       </label>
                     )
@@ -856,6 +958,3 @@ export default function CatalogPage() {
     </div>
   )
 }
-
-
-
