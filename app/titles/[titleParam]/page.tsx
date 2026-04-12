@@ -1,7 +1,7 @@
 "use client"
 
 import type { ComponentProps } from "react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import {
@@ -28,11 +28,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { MediaImage } from "@/components/ui/media-image"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
 import { getAnalytics } from "@/lib/api/analytics/analytics"
 import { getChapters } from "@/lib/api/chapters/chapters"
+import { getCollections } from "@/lib/api/collections/collections"
 import type {
   ChapterSummaryResponse,
   TagResponse,
@@ -40,9 +51,16 @@ import type {
   TitleAuthorResponse,
   TitlePublisherResponse,
   TitleResponse,
+  UserCollectionResponse,
 } from "@/lib/api/api.schemas"
 import { getTitles } from "@/lib/api/titles/titles"
+import {
+  buildLoginHref,
+  hasAuthToken,
+  initKeycloak,
+} from "@/lib/axios-instance"
 import { CONTENT_RATING_LABELS, TITLE_TYPE_LABELS } from "@/lib/constants"
+import { normalizeCollectionsPayload } from "@/lib/user-space"
 
 const TITLE_STATUS_LABELS: Record<string, string> = {
   ONGOING: "Онгоинг",
@@ -404,6 +422,110 @@ export default function TitlePage() {
   const [isLoading, setIsLoading] = useState(() => Boolean(titleParam))
   const [errorText, setErrorText] = useState<string | null>(null)
   const [chaptersSort, setChaptersSort] = useState<'desc' | 'asc'>("desc")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isCollectionsDialogOpen, setIsCollectionsDialogOpen] = useState(false)
+  const [collections, setCollections] = useState<UserCollectionResponse[]>([])
+  const [isCollectionsLoading, setIsCollectionsLoading] = useState(false)
+  const [isCollectionsSaving, setIsCollectionsSaving] = useState(false)
+  const [collectionsNotice, setCollectionsNotice] = useState<string | null>(null)
+  const [newCollectionName, setNewCollectionName] = useState("")
+  const [newCollectionIsPublic, setNewCollectionIsPublic] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const resolveSession = async () => {
+      const authenticated = await initKeycloak().catch(() => false)
+
+      if (!isMounted) {
+        return
+      }
+
+      setIsAuthenticated(authenticated || hasAuthToken())
+    }
+
+    void resolveSession()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const loadCollections = useCallback(async () => {
+    if (!isAuthenticated) {
+      setCollections([])
+      return
+    }
+
+    setIsCollectionsLoading(true)
+
+    const payload = await getCollections()
+      .getMyCollections({
+        page: 0,
+        size: 50,
+        sort: ["updatedAt,DESC"],
+      })
+      .catch(() => null)
+
+    const parsedPayload = normalizeCollectionsPayload(payload)
+
+    setCollections(parsedPayload.items)
+    setIsCollectionsLoading(false)
+  }, [isAuthenticated])
+
+  const handleAddToCollection = async (collection: UserCollectionResponse) => {
+    if (!title?.id || !collection.id || isCollectionsSaving) {
+      return
+    }
+
+    setIsCollectionsSaving(true)
+
+    const updatedCollection = await getCollections()
+      .addTitleToCollection(collection.id, title.id)
+      .catch(() => null)
+
+    if (!updatedCollection) {
+      setCollectionsNotice("Не удалось добавить тайтл в коллекцию")
+      setIsCollectionsSaving(false)
+      return
+    }
+
+    setCollections((prev) =>
+      prev.map((item) => (item.id === updatedCollection.id ? updatedCollection : item))
+    )
+    setCollectionsNotice(`Тайтл добавлен в коллекцию «${updatedCollection.name || "без названия"}»`)
+    setIsCollectionsSaving(false)
+  }
+
+  const handleCreateCollectionAndAddTitle = async () => {
+    const normalizedName = newCollectionName.trim()
+
+    if (!title?.id || !normalizedName || isCollectionsSaving) {
+      return
+    }
+
+    setIsCollectionsSaving(true)
+
+    const createdCollection = await getCollections()
+      .createCollection({
+        name: normalizedName,
+        isPublic: newCollectionIsPublic,
+        titleIds: [title.id],
+      })
+      .catch(() => null)
+
+    if (!createdCollection) {
+      setCollectionsNotice("Не удалось создать коллекцию")
+      setIsCollectionsSaving(false)
+      return
+    }
+
+    setCollections((prev) => [createdCollection, ...prev])
+    setCollectionsNotice(`Коллекция «${createdCollection.name || "без названия"}» создана`)
+    setNewCollectionName("")
+    setNewCollectionIsPublic(false)
+    setIsCollectionsSaving(false)
+  }
 
   useEffect(() => {
     if (!titleParam) {
@@ -578,6 +700,8 @@ export default function TitlePage() {
       value: licensedValue,
     },
   ]
+
+  const titleHref = `/titles/${title.slug || title.id || titleParam}`
 
   return (
     <div className="relative overflow-hidden">
@@ -762,6 +886,137 @@ export default function TitlePage() {
                       />
                     </a>
                   </Button>
+
+                  {isAuthenticated ? (
+                    <Dialog
+                      open={isCollectionsDialogOpen}
+                      onOpenChange={(nextOpen) => {
+                        setIsCollectionsDialogOpen(nextOpen)
+                        if (nextOpen) {
+                          setCollectionsNotice(null)
+                          void loadCollections()
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="secondary" size="lg">
+                          <HugeiconsIcon
+                            icon={Tag01Icon}
+                            strokeWidth={1.8}
+                            className="size-4"
+                          />
+                          В коллекцию
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-xl">
+                        <DialogHeader>
+                          <DialogTitle>Добавить в коллекцию</DialogTitle>
+                          <DialogDescription>
+                            Выберите существующую коллекцию или создайте новую.
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-3">
+                          <Input
+                            value={newCollectionName}
+                            onChange={(event) => {
+                              setNewCollectionName(event.target.value)
+                            }}
+                            placeholder="Название новой коллекции"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant={newCollectionIsPublic ? "default" : "outline"}
+                              onClick={() => {
+                                setNewCollectionIsPublic(true)
+                              }}
+                            >
+                              Публичная
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={!newCollectionIsPublic ? "default" : "outline"}
+                              onClick={() => {
+                                setNewCollectionIsPublic(false)
+                              }}
+                            >
+                              Приватная
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => void handleCreateCollectionAndAddTitle()}
+                              disabled={!newCollectionName.trim() || isCollectionsSaving}
+                            >
+                              Создать и добавить
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="max-h-72 space-y-2 overflow-y-auto">
+                          {isCollectionsLoading ? (
+                            <p className="text-sm text-muted-foreground">
+                              Загружаем коллекции...
+                            </p>
+                          ) : collections.length > 0 ? (
+                            collections.map((collectionItem) => {
+                              const titleId = title.id || ""
+                              const isAlreadyInCollection = Boolean(
+                                titleId && (collectionItem.titleIds || []).includes(titleId)
+                              )
+
+                              return (
+                                <div
+                                  key={collectionItem.id || collectionItem.name}
+                                  className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-background/70 p-3"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="truncate text-sm font-medium">
+                                      {collectionItem.name || "Коллекция без названия"}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {collectionItem.isPublic ? "Публичная" : "Приватная"} · {collectionItem.titleIds?.length || 0} тайтлов
+                                    </div>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={isAlreadyInCollection || isCollectionsSaving}
+                                    onClick={() => void handleAddToCollection(collectionItem)}
+                                  >
+                                    {isAlreadyInCollection ? "Уже добавлен" : "Добавить"}
+                                  </Button>
+                                </div>
+                              )
+                            })
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              У вас пока нет коллекций.
+                            </p>
+                          )}
+                        </div>
+
+                        {collectionsNotice ? (
+                          <p className="text-sm text-muted-foreground">{collectionsNotice}</p>
+                        ) : null}
+
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setIsCollectionsDialogOpen(false)
+                            }}
+                          >
+                            Закрыть
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  ) : (
+                    <Button asChild variant="secondary" size="lg">
+                      <Link href={buildLoginHref(titleHref)}>Войти и добавить в коллекцию</Link>
+                    </Button>
+                  )}
                 </div>
               </div>
 
