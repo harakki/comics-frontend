@@ -10,11 +10,14 @@ import {
   BookBookmark01Icon,
   BookOpen01Icon,
   Calendar03Icon,
+  Cancel01Icon,
   ChartAverageIcon,
   Clock03Icon,
   EyeIcon,
   Globe02Icon,
   Tag01Icon,
+  ThumbsDownIcon,
+  ThumbsUpIcon,
   UserGroupIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -41,11 +44,25 @@ import { MediaImage } from "@/components/ui/media-image"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { getAnalytics } from "@/lib/api/analytics/analytics"
 import { getChapters } from "@/lib/api/chapters/chapters"
 import { getCollections } from "@/lib/api/collections/collections"
+import { getLibrary } from "@/lib/api/library/library"
 import type {
   ChapterSummaryResponse,
+  LibraryEntryResponse,
+  LibraryEntryUpdateRequestStatus,
+  LibraryEntryUpdateRequestVote,
   TagResponse,
   TitleAnalyticsResponse,
   TitleAuthorResponse,
@@ -60,7 +77,11 @@ import {
   initKeycloak,
 } from "@/lib/axios-instance"
 import { CONTENT_RATING_LABELS, TITLE_TYPE_LABELS } from "@/lib/constants"
-import { normalizeCollectionsPayload } from "@/lib/user-space"
+import {
+  LIBRARY_STATUS_LABELS,
+  LIBRARY_STATUS_ORDER,
+  normalizeCollectionsPayload,
+} from "@/lib/user-space"
 
 const TITLE_STATUS_LABELS: Record<string, string> = {
   ONGOING: "Онгоинг",
@@ -85,6 +106,9 @@ const TAG_TYPE_LABELS: Record<string, string> = {
 const TITLE_LOOKUP_PAGE_SIZE = 24
 const DESCRIPTION_PREVIEW_LIMIT = 240
 const EMPTY_VALUE = "Нет данных"
+const DEFAULT_LIBRARY_STATUS: LibraryEntryUpdateRequestStatus = "TO_READ"
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 type HugeIcon = ComponentProps<typeof HugeiconsIcon>["icon"]
 
@@ -110,6 +134,8 @@ const normalizeTitleParam = (value: string | string[] | undefined) => {
   return value || ""
 }
 
+const isUuid = (value: string) => UUID_REGEX.test(value)
+
 const getDescriptionPreview = (value?: string) => {
   const normalized = (value || "").replaceAll(/\s+/g, " ").trim()
 
@@ -122,6 +148,22 @@ const getDescriptionPreview = (value?: string) => {
   }
 
   return `${normalized.slice(0, DESCRIPTION_PREVIEW_LIMIT).trimEnd()}...`
+}
+
+const getHttpStatus = (error: unknown) => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof error.response === "object" &&
+    error.response !== null &&
+    "status" in error.response &&
+    typeof error.response.status === "number"
+  ) {
+    return error.response.status
+  }
+
+  return null
 }
 
 const formatNumber = (value?: number | null) => {
@@ -211,8 +253,14 @@ const normalizePublishers = (publishers?: TitlePublisherResponse[]) =>
       }
     })
     .filter(
-      (entry): entry is { key: string; id: string | undefined; slug: string | undefined; name: string } =>
-        entry !== null
+      (
+        entry
+      ): entry is {
+        key: string
+        id: string | undefined
+        slug: string | undefined
+        name: string
+      } => entry !== null
     )
 
 const groupTags = (tags?: TagResponse[]): GroupedTags =>
@@ -278,19 +326,15 @@ const getOrderedChapters = (chapters: ChapterSummaryResponse[]) =>
     })
     .map((entry) => entry.chapter)
 
-const resolveTitle = async (titleParam: string) => {
+const resolveTitleId = async (titleParam: string) => {
   const normalizedTitleParam = titleParam.trim()
 
   if (!normalizedTitleParam) {
     return null
   }
 
-  const directMatch = await getTitles()
-    .getTitle(normalizedTitleParam)
-    .catch(() => null)
-
-  if (directMatch) {
-    return directMatch
+  if (isUuid(normalizedTitleParam)) {
+    return normalizedTitleParam
   }
 
   const searchResult = await getTitles()
@@ -303,18 +347,36 @@ const resolveTitle = async (titleParam: string) => {
   const matches = searchResult?.content || []
   const normalizedLookup = normalizedTitleParam.toLowerCase()
 
-  return (
-    matches.find(
-      (item) => (item.slug || "").toLowerCase() === normalizedLookup
-    ) ||
-    matches.find(
-      (item) => (item.id || "").toLowerCase() === normalizedLookup
-    ) ||
-    matches.find(
-      (item) => (item.name || "").trim().toLowerCase() === normalizedLookup
-    ) ||
-    (matches.length === 1 ? matches[0] : null)
+  const exactSlugMatch = matches.find(
+    (item) => item.id && (item.slug || "").toLowerCase() === normalizedLookup
   )
+
+  if (exactSlugMatch?.id) {
+    return exactSlugMatch.id
+  }
+
+  const exactIdMatch = matches.find(
+    (item) => item.id && (item.id || "").toLowerCase() === normalizedLookup
+  )
+
+  if (exactIdMatch?.id) {
+    return exactIdMatch.id
+  }
+
+  const exactNameMatch = matches.find(
+    (item) =>
+      item.id && (item.name || "").trim().toLowerCase() === normalizedLookup
+  )
+
+  if (exactNameMatch?.id) {
+    return exactNameMatch.id
+  }
+
+  if (matches.length === 1 && matches[0]?.id) {
+    return matches[0].id
+  }
+
+  return null
 }
 
 function StatTile({
@@ -421,15 +483,25 @@ export default function TitlePage() {
   const [chapters, setChapters] = useState<ChapterSummaryResponse[]>([])
   const [isLoading, setIsLoading] = useState(() => Boolean(titleParam))
   const [errorText, setErrorText] = useState<string | null>(null)
-  const [chaptersSort, setChaptersSort] = useState<'desc' | 'asc'>("desc")
+  const [chaptersSort, setChaptersSort] = useState<"desc" | "asc">("desc")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isCollectionsDialogOpen, setIsCollectionsDialogOpen] = useState(false)
   const [collections, setCollections] = useState<UserCollectionResponse[]>([])
   const [isCollectionsLoading, setIsCollectionsLoading] = useState(false)
   const [isCollectionsSaving, setIsCollectionsSaving] = useState(false)
-  const [collectionsNotice, setCollectionsNotice] = useState<string | null>(null)
+  const [collectionsNotice, setCollectionsNotice] = useState<string | null>(
+    null
+  )
   const [newCollectionName, setNewCollectionName] = useState("")
   const [newCollectionIsPublic, setNewCollectionIsPublic] = useState(false)
+  const [libraryEntry, setLibraryEntry] = useState<LibraryEntryResponse | null>(
+    null
+  )
+  const [selectedLibraryStatus, setSelectedLibraryStatus] =
+    useState<LibraryEntryUpdateRequestStatus>(DEFAULT_LIBRARY_STATUS)
+  const [isLibraryLoading, setIsLibraryLoading] = useState(false)
+  const [isLibrarySaving, setIsLibrarySaving] = useState(false)
+  const [libraryNotice, setLibraryNotice] = useState<string | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -491,9 +563,13 @@ export default function TitlePage() {
     }
 
     setCollections((prev) =>
-      prev.map((item) => (item.id === updatedCollection.id ? updatedCollection : item))
+      prev.map((item) =>
+        item.id === updatedCollection.id ? updatedCollection : item
+      )
     )
-    setCollectionsNotice(`Тайтл добавлен в коллекцию «${updatedCollection.name || "без названия"}»`)
+    setCollectionsNotice(
+      `Тайтл добавлен в коллекцию «${updatedCollection.name || "без названия"}»`
+    )
     setIsCollectionsSaving(false)
   }
 
@@ -521,11 +597,257 @@ export default function TitlePage() {
     }
 
     setCollections((prev) => [createdCollection, ...prev])
-    setCollectionsNotice(`Коллекция «${createdCollection.name || "без названия"}» создана`)
+    setCollectionsNotice(
+      `Коллекция «${createdCollection.name || "без названия"}» создана`
+    )
     setNewCollectionName("")
     setNewCollectionIsPublic(false)
     setIsCollectionsSaving(false)
   }
+
+  useEffect(() => {
+    if (!isAuthenticated || !title?.id) {
+      setLibraryEntry(null)
+      setSelectedLibraryStatus(DEFAULT_LIBRARY_STATUS)
+      setIsLibraryLoading(false)
+      return
+    }
+
+    let isMounted = true
+    const titleId = title.id
+
+    const loadLibraryEntry = async () => {
+      setIsLibraryLoading(true)
+      setLibraryNotice(null)
+
+      try {
+        const entry = await getLibrary().getLibraryEntry(titleId)
+
+        if (!isMounted) {
+          return
+        }
+
+        setLibraryEntry(entry)
+        setSelectedLibraryStatus(entry.status || DEFAULT_LIBRARY_STATUS)
+      } catch (error) {
+        if (!isMounted) {
+          return
+        }
+
+        if (getHttpStatus(error) === 404) {
+          setLibraryEntry(null)
+          setSelectedLibraryStatus(DEFAULT_LIBRARY_STATUS)
+        } else {
+          setLibraryNotice("Не удалось загрузить запись библиотеки")
+        }
+      } finally {
+        if (isMounted) {
+          setIsLibraryLoading(false)
+        }
+      }
+    }
+
+    void loadLibraryEntry()
+
+    return () => {
+      isMounted = false
+    }
+  }, [isAuthenticated, title?.id])
+
+  const saveLibraryEntry = useCallback(
+    async ({
+      status,
+      vote,
+      successText,
+    }: {
+      status?: LibraryEntryUpdateRequestStatus
+      vote?: LibraryEntryUpdateRequestVote | null
+      successText?: string
+    }) => {
+      if (!title?.id || !isAuthenticated || isLibrarySaving) {
+        return
+      }
+
+      const titleId = title.id
+      const previousEntry = libraryEntry
+      const nextStatus =
+        status ?? previousEntry?.status ?? DEFAULT_LIBRARY_STATUS
+
+      // Determine nextVote explicitly (avoid nested ternary)
+      let nextVote: LibraryEntryUpdateRequestVote | undefined
+      if (vote === undefined) {
+        nextVote = previousEntry?.vote
+      } else if (vote === null) {
+        // explicit null means removal of vote -> omit from payload
+        nextVote = undefined
+      } else {
+        nextVote = vote
+      }
+
+      setIsLibrarySaving(true)
+      setLibraryNotice(null)
+
+      setLibraryEntry((prev) => {
+        const base = prev ? { ...prev } : { titleId }
+
+        const updatedBase: Partial<LibraryEntryResponse> = {
+          ...base,
+          titleId,
+          status: nextStatus,
+        }
+
+        if (nextVote !== undefined) {
+          updatedBase.vote = nextVote
+        } else {
+          // ensure vote key is not present when undefined
+          delete updatedBase.vote
+        }
+
+        return updatedBase as LibraryEntryResponse
+      })
+
+      const payload: {
+        status: LibraryEntryUpdateRequestStatus
+        vote?: LibraryEntryUpdateRequestVote
+      } = {
+        status: nextStatus,
+      }
+
+      if (nextVote !== undefined) {
+        payload.vote = nextVote
+      }
+
+      const updatedEntry = await getLibrary()
+        .addOrUpdateLibraryEntry(titleId, payload)
+        .catch(() => null)
+
+      if (!updatedEntry) {
+        setLibraryEntry(previousEntry)
+        setLibraryNotice("Не удалось обновить библиотеку")
+        setIsLibrarySaving(false)
+        return
+      }
+
+      setLibraryEntry(updatedEntry)
+      setSelectedLibraryStatus(updatedEntry.status || nextStatus)
+      // intentionally do NOT show success notices on user actions
+      setIsLibrarySaving(false)
+    },
+    [isAuthenticated, isLibrarySaving, libraryEntry, title?.id]
+  )
+
+  const handleDeleteLibraryEntry = useCallback(async () => {
+    if (!isAuthenticated || isLibrarySaving || !libraryEntry?.id) {
+      return
+    }
+
+    setIsLibrarySaving(true)
+    setLibraryNotice(null)
+
+    const isDeleted = await getLibrary()
+      .deleteLibraryEntry(libraryEntry.id)
+      .then(() => true)
+      .catch(() => false)
+
+    if (!isDeleted) {
+      setLibraryNotice("Не удалось удалить тайтл из библиотеки")
+      setIsLibrarySaving(false)
+      return
+    }
+
+    setLibraryEntry(null)
+    setSelectedLibraryStatus(DEFAULT_LIBRARY_STATUS)
+    setIsLibrarySaving(false)
+  }, [isAuthenticated, isLibrarySaving, libraryEntry?.id])
+
+  // Clear vote sequence: remember status, delete entry (if any) to clear vote on server,
+  // then re-create entry with remembered status (if any). No success notices shown.
+  const clearVoteSequence = useCallback(async () => {
+    if (!title?.id || !isAuthenticated || isLibrarySaving) {
+      return
+    }
+
+    const titleId = title.id
+    const previousEntry = libraryEntry
+    const previousStatus = previousEntry?.status
+
+    setIsLibrarySaving(true)
+    setLibraryNotice(null)
+
+    // optimistic update: remove vote locally
+    setLibraryEntry((prev) => {
+      if (!prev) return prev
+      const copy: Partial<LibraryEntryResponse> = { ...prev }
+      delete copy.vote
+      return copy as LibraryEntryResponse
+    })
+
+    // If there was an entry on server, delete it to clear vote
+    if (previousEntry?.id) {
+      const deleted = await getLibrary()
+        .deleteLibraryEntry(previousEntry.id)
+        .then(() => true)
+        .catch(() => false)
+
+      if (!deleted) {
+        setLibraryEntry(previousEntry)
+        setLibraryNotice("Не удалось обновить библиотеку")
+        setIsLibrarySaving(false)
+        return
+      }
+    }
+
+    // Re-create entry with previous status (if any). If no previous status, keep entry deleted.
+    if (previousStatus) {
+      const restored = await getLibrary()
+        .addOrUpdateLibraryEntry(titleId, { status: previousStatus })
+        .catch(() => null)
+
+      if (!restored) {
+        // rollback
+        setLibraryEntry(previousEntry)
+        setLibraryNotice("Не удалось восстановить статус в библиотеке")
+        setIsLibrarySaving(false)
+        return
+      }
+
+      setLibraryEntry(restored)
+      setSelectedLibraryStatus(restored.status || previousStatus)
+    } else {
+      setLibraryEntry(null)
+      setSelectedLibraryStatus(DEFAULT_LIBRARY_STATUS)
+    }
+
+    setIsLibrarySaving(false)
+  }, [isAuthenticated, isLibrarySaving, libraryEntry, title?.id])
+
+  const handleToggleLike = useCallback(() => {
+    const nextVote =
+      libraryEntry?.vote === "LIKE"
+        ? null
+        : ("LIKE" as LibraryEntryUpdateRequestVote)
+
+    if (nextVote === null) {
+      void clearVoteSequence()
+      return
+    }
+
+    void saveLibraryEntry({ vote: nextVote })
+  }, [libraryEntry, saveLibraryEntry, clearVoteSequence])
+
+  const handleToggleDislike = useCallback(() => {
+    const nextVote =
+      libraryEntry?.vote === "DISLIKE"
+        ? null
+        : ("DISLIKE" as LibraryEntryUpdateRequestVote)
+
+    if (nextVote === null) {
+      void clearVoteSequence()
+      return
+    }
+
+    void saveLibraryEntry({ vote: nextVote })
+  }, [libraryEntry, saveLibraryEntry, clearVoteSequence])
 
   useEffect(() => {
     if (!titleParam) {
@@ -538,7 +860,24 @@ export default function TitlePage() {
       setIsLoading(true)
       setErrorText(null)
 
-      const resolvedTitle = await resolveTitle(titleParam)
+      const resolvedTitleId = await resolveTitleId(titleParam)
+
+      if (!isMounted) {
+        return
+      }
+
+      if (!resolvedTitleId) {
+        setTitle(null)
+        setAnalytics(null)
+        setChapters([])
+        setErrorText("Тайтл не найден")
+        setIsLoading(false)
+        return
+      }
+
+      const resolvedTitle = await getTitles()
+        .getTitle(resolvedTitleId)
+        .catch(() => null)
 
       if (!isMounted) {
         return
@@ -622,7 +961,9 @@ export default function TitlePage() {
   const groupedTags = groupTags(title.tags)
   const orderedChapters = getOrderedChapters(chapters)
   const displayChapters =
-    chaptersSort === "desc" ? [...orderedChapters].reverse() : [...orderedChapters]
+    chaptersSort === "desc"
+      ? [...orderedChapters].reverse()
+      : [...orderedChapters]
   const firstChapter = orderedChapters[0]
   let licensedValue = EMPTY_VALUE
 
@@ -702,6 +1043,61 @@ export default function TitlePage() {
   ]
 
   const titleHref = `/titles/${title.slug || title.id || titleParam}`
+  const statusForAction = selectedLibraryStatus || DEFAULT_LIBRARY_STATUS
+  const hasLibraryEntry = Boolean(libraryEntry?.id)
+  const currentLibraryStatusLabel =
+    libraryEntry?.status && LIBRARY_STATUS_LABELS[libraryEntry.status]
+      ? LIBRARY_STATUS_LABELS[libraryEntry.status]
+      : null
+  const statusButtonLabel = currentLibraryStatusLabel
+    ? `Статус: ${currentLibraryStatusLabel}`
+    : "Установить статус"
+
+  const collectionsRendered = (() => {
+    if (isCollectionsLoading) {
+      return (
+        <p className="text-sm text-muted-foreground">Загружаем коллекции...</p>
+      )
+    }
+
+    if (collections.length > 0) {
+      return collections.map((collectionItem) => {
+        const titleId = title.id || ""
+        const isAlreadyInCollection = Boolean(
+          titleId && (collectionItem.titleIds || []).includes(titleId)
+        )
+
+        return (
+          <div
+            key={collectionItem.id || collectionItem.name}
+            className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-background/70 p-3"
+          >
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">
+                {collectionItem.name || "Коллекция без названия"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {collectionItem.isPublic ? "Публичная" : "Приватная"} ·{" "}
+                {collectionItem.titleIds?.length || 0} тайтлов
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isAlreadyInCollection || isCollectionsSaving}
+              onClick={() => void handleAddToCollection(collectionItem)}
+            >
+              {isAlreadyInCollection ? "Уже добавлен" : "Добавить"}
+            </Button>
+          </div>
+        )
+      })
+    }
+
+    return (
+      <p className="text-sm text-muted-foreground">У вас пока нет коллекций.</p>
+    )
+  })()
 
   return (
     <div className="relative overflow-hidden">
@@ -766,8 +1162,15 @@ export default function TitlePage() {
                       variant="secondary"
                       className="rounded-full bg-background/70 px-3 py-1 backdrop-blur"
                     >
-                      {TITLE_STATUS_LABELS[title.titleStatus] ||
-                        title.titleStatus}
+                      <HugeiconsIcon
+                        icon={BookBookmark01Icon}
+                        strokeWidth={1.8}
+                        className="size-4"
+                      />
+                      <span className="ml-2">
+                        {TITLE_STATUS_LABELS[title.titleStatus] ||
+                          title.titleStatus}
+                      </span>
                     </Badge>
                   ) : null}
                   {title.contentRating ? (
@@ -795,7 +1198,9 @@ export default function TitlePage() {
                             <span key={author.key}>
                               <Link
                                 href={`/authors/${
-                                  author.slug || author.id || encodeURIComponent(author.name)
+                                  author.slug ||
+                                  author.id ||
+                                  encodeURIComponent(author.name)
                                 }`}
                                 className="underline-offset-2 hover:underline"
                               >
@@ -815,8 +1220,10 @@ export default function TitlePage() {
                           <span key={publisher.key}>
                             <Link
                               href={`/publishers/${
-                                  publisher.slug || publisher.id || encodeURIComponent(publisher.name || "")
-                                }`}
+                                publisher.slug ||
+                                publisher.id ||
+                                encodeURIComponent(publisher.name || "")
+                              }`}
                               className="underline-offset-2 hover:underline"
                             >
                               {publisher.name}
@@ -859,165 +1266,251 @@ export default function TitlePage() {
                   </Badge>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  {firstChapter?.id ? (
-                    <Button asChild size="lg">
-                      <Link
-                        href={`/chapters/${firstChapter.id}`}
-                        className="gap-2"
-                      >
-                        <HugeiconsIcon
-                          icon={BookOpen01Icon}
-                          strokeWidth={1.8}
-                          className="size-4"
-                        />
-                        <span>Начать чтение</span>
-                      </Link>
-                    </Button>
-                  ) : null}
-
-                  <Button asChild variant="outline" size="lg">
-                    <a href="#chapters" className="gap-2">
-                      <span>К списку глав</span>
-                      <HugeiconsIcon
-                        icon={ArrowRight01Icon}
-                        strokeWidth={1.8}
-                        className="size-4"
-                      />
-                    </a>
-                  </Button>
-
-                  {isAuthenticated ? (
-                    <Dialog
-                      open={isCollectionsDialogOpen}
-                      onOpenChange={(nextOpen) => {
-                        setIsCollectionsDialogOpen(nextOpen)
-                        if (nextOpen) {
-                          setCollectionsNotice(null)
-                          void loadCollections()
-                        }
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button variant="secondary" size="lg">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-3">
+                    {firstChapter?.id ? (
+                      <Button asChild size="lg">
+                        <Link
+                          href={`/chapters/${firstChapter.id}`}
+                          className="gap-2"
+                        >
                           <HugeiconsIcon
-                            icon={Tag01Icon}
+                            icon={BookOpen01Icon}
                             strokeWidth={1.8}
                             className="size-4"
                           />
-                          В коллекцию
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-xl">
-                        <DialogHeader>
-                          <DialogTitle>Добавить в коллекцию</DialogTitle>
-                          <DialogDescription>
-                            Выберите существующую коллекцию или создайте новую.
-                          </DialogDescription>
-                        </DialogHeader>
+                          <span>Начать чтение</span>
+                        </Link>
+                      </Button>
+                    ) : null}
 
-                        <div className="space-y-3">
-                          <Input
-                            value={newCollectionName}
-                            onChange={(event) => {
-                              setNewCollectionName(event.target.value)
-                            }}
-                            placeholder="Название новой коллекции"
-                          />
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              size="sm"
-                              variant={newCollectionIsPublic ? "default" : "outline"}
-                              onClick={() => {
-                                setNewCollectionIsPublic(true)
-                              }}
-                            >
-                              Публичная
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={!newCollectionIsPublic ? "default" : "outline"}
-                              onClick={() => {
-                                setNewCollectionIsPublic(false)
-                              }}
-                            >
-                              Приватная
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => void handleCreateCollectionAndAddTitle()}
-                              disabled={!newCollectionName.trim() || isCollectionsSaving}
-                            >
-                              Создать и добавить
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="max-h-72 space-y-2 overflow-y-auto">
-                          {isCollectionsLoading ? (
-                            <p className="text-sm text-muted-foreground">
-                              Загружаем коллекции...
-                            </p>
-                          ) : collections.length > 0 ? (
-                            collections.map((collectionItem) => {
-                              const titleId = title.id || ""
-                              const isAlreadyInCollection = Boolean(
-                                titleId && (collectionItem.titleIds || []).includes(titleId)
-                              )
-
-                              return (
-                                <div
-                                  key={collectionItem.id || collectionItem.name}
-                                  className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-background/70 p-3"
-                                >
-                                  <div className="min-w-0">
-                                    <div className="truncate text-sm font-medium">
-                                      {collectionItem.name || "Коллекция без названия"}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {collectionItem.isPublic ? "Публичная" : "Приватная"} · {collectionItem.titleIds?.length || 0} тайтлов
-                                    </div>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={isAlreadyInCollection || isCollectionsSaving}
-                                    onClick={() => void handleAddToCollection(collectionItem)}
-                                  >
-                                    {isAlreadyInCollection ? "Уже добавлен" : "Добавить"}
-                                  </Button>
-                                </div>
-                              )
-                            })
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              У вас пока нет коллекций.
-                            </p>
-                          )}
-                        </div>
-
-                        {collectionsNotice ? (
-                          <p className="text-sm text-muted-foreground">{collectionsNotice}</p>
-                        ) : null}
-
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setIsCollectionsDialogOpen(false)
-                            }}
-                          >
-                            Закрыть
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  ) : (
-                    <Button asChild variant="secondary" size="lg">
-                      <Link href={buildLoginHref(titleHref)}>Войти и добавить в коллекцию</Link>
+                    <Button asChild variant="outline" size="lg">
+                      <a href="#chapters" className="gap-2">
+                        <span>К списку глав</span>
+                        <HugeiconsIcon
+                          icon={ArrowRight01Icon}
+                          strokeWidth={1.8}
+                          className="size-4"
+                        />
+                      </a>
                     </Button>
-                  )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {isAuthenticated ? (
+                      <>
+                        <Button
+                          variant={
+                            libraryEntry?.vote === "LIKE"
+                              ? "default"
+                              : "outline"
+                          }
+                          size="icon"
+                          aria-label="Лайк"
+                          title="Лайк"
+                          disabled={isLibraryLoading || isLibrarySaving}
+                          onClick={() => void handleToggleLike()}
+                        >
+                          <HugeiconsIcon
+                            icon={ThumbsUpIcon}
+                            strokeWidth={1.8}
+                            className="size-4"
+                          />
+                        </Button>
+
+                        <Button
+                          variant={
+                            libraryEntry?.vote === "DISLIKE"
+                              ? "destructive"
+                              : "outline"
+                          }
+                          size="icon"
+                          aria-label="Дизлайк"
+                          title="Дизлайк"
+                          disabled={isLibraryLoading || isLibrarySaving}
+                          onClick={() => void handleToggleDislike()}
+                        >
+                          <HugeiconsIcon
+                            icon={ThumbsDownIcon}
+                            strokeWidth={1.8}
+                            className="size-4"
+                          />
+                        </Button>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="secondary"
+                              size="lg"
+                              disabled={isLibraryLoading || isLibrarySaving}
+                            >
+                              {isLibrarySaving
+                                ? "Сохраняем..."
+                                : statusButtonLabel}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-72">
+                            <DropdownMenuLabel>
+                              Статус в библиотеке
+                            </DropdownMenuLabel>
+                            <DropdownMenuRadioGroup
+                              value={statusForAction}
+                              onValueChange={(value) => {
+                                const next =
+                                  value as LibraryEntryUpdateRequestStatus
+                                setSelectedLibraryStatus(next)
+                                void saveLibraryEntry({ status: next })
+                              }}
+                            >
+                              {LIBRARY_STATUS_ORDER.map((status) => (
+                                <DropdownMenuRadioItem
+                                  key={status}
+                                  value={status}
+                                >
+                                  {LIBRARY_STATUS_LABELS[status] || status}
+                                </DropdownMenuRadioItem>
+                              ))}
+                            </DropdownMenuRadioGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              disabled={!hasLibraryEntry || isLibrarySaving}
+                              onSelect={() => void handleDeleteLibraryEntry()}
+                            >
+                              <HugeiconsIcon
+                                icon={Cancel01Icon}
+                                strokeWidth={1.8}
+                                className="size-4"
+                              />
+                              Удалить из библиотеки
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Dialog
+                          open={isCollectionsDialogOpen}
+                          onOpenChange={(nextOpen) => {
+                            setIsCollectionsDialogOpen(nextOpen)
+                            if (nextOpen) {
+                              setCollectionsNotice(null)
+                              void loadCollections()
+                            }
+                          }}
+                        >
+                          <DialogTrigger asChild>
+                            <Button variant="secondary" size="lg">
+                              <HugeiconsIcon
+                                icon={Tag01Icon}
+                                strokeWidth={1.8}
+                                className="size-4"
+                              />
+                              В коллекцию
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-xl">
+                            <DialogHeader>
+                              <DialogTitle>Добавить в коллекцию</DialogTitle>
+                              <DialogDescription>
+                                Выберите существующую коллекцию или создайте
+                                новую.
+                              </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-3">
+                              <Input
+                                value={newCollectionName}
+                                onChange={(event) => {
+                                  setNewCollectionName(event.target.value)
+                                }}
+                                placeholder="Название новой коллекции"
+                              />
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  size="sm"
+                                  variant={
+                                    newCollectionIsPublic
+                                      ? "default"
+                                      : "outline"
+                                  }
+                                  onClick={() => {
+                                    setNewCollectionIsPublic(true)
+                                  }}
+                                >
+                                  Публичная
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={
+                                    newCollectionIsPublic
+                                      ? "outline"
+                                      : "default"
+                                  }
+                                  onClick={() => {
+                                    setNewCollectionIsPublic(false)
+                                  }}
+                                >
+                                  Приватная
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    void handleCreateCollectionAndAddTitle()
+                                  }
+                                  disabled={
+                                    !newCollectionName.trim() ||
+                                    isCollectionsSaving
+                                  }
+                                >
+                                  Создать и добавить
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="max-h-72 space-y-2 overflow-y-auto">
+                              {collectionsRendered}
+                            </div>
+
+                            {collectionsNotice ? (
+                              <p className="text-sm text-muted-foreground">
+                                {collectionsNotice}
+                              </p>
+                            ) : null}
+
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setIsCollectionsDialogOpen(false)
+                                }}
+                              >
+                                Закрыть
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </>
+                    ) : (
+                      <>
+                        <Button asChild variant="secondary" size="lg">
+                          <Link href={buildLoginHref(titleHref)}>
+                            Войти и добавить в библиотеку
+                          </Link>
+                        </Button>
+                        <Button asChild variant="secondary" size="lg">
+                          <Link href={buildLoginHref(titleHref)}>
+                            Войти и добавить в коллекцию
+                          </Link>
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                {libraryNotice ? (
+                  <p className="text-sm text-muted-foreground">
+                    {libraryNotice}
+                  </p>
+                ) : null}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
@@ -1086,23 +1579,27 @@ export default function TitlePage() {
                       </div>
 
                       {orderedChapters.length > 0 ? (
-                        <div className="flex flex-wrap gap-2 items-center">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button
                             size="sm"
-                            variant={chaptersSort === "desc" ? "outline" : "ghost"}
+                            variant={
+                              chaptersSort === "desc" ? "outline" : "ghost"
+                            }
                             onClick={() =>
-                              setChaptersSort((prev) => (prev === "desc" ? "asc" : "desc"))
+                              setChaptersSort((prev) =>
+                                prev === "desc" ? "asc" : "desc"
+                              )
                             }
                           >
                             <HugeiconsIcon
                               icon={ArrowRight01Icon}
                               strokeWidth={1.8}
-                              className={
-                                `size-4 ${chaptersSort === "desc" ? "rotate-90" : "-rotate-90"}`
-                              }
+                              className={`size-4 ${chaptersSort === "desc" ? "rotate-90" : "-rotate-90"}`}
                             />
                             <span className="whitespace-nowrap">
-                              {chaptersSort === "desc" ? "Новые сверху" : "Старые сверху"}
+                              {chaptersSort === "desc"
+                                ? "Новые сверху"
+                                : "Старые сверху"}
                             </span>
                           </Button>
 
@@ -1221,11 +1718,15 @@ export default function TitlePage() {
                             >
                               <Link
                                 href={`/authors/${
-                                  author.slug || author.id || encodeURIComponent(author.name)
+                                  author.slug ||
+                                  author.id ||
+                                  encodeURIComponent(author.name)
                                 }`}
                               >
                                 {author.name}
-                                {author.roleLabel ? ` · ${author.roleLabel}` : ""}
+                                {author.roleLabel
+                                  ? ` · ${author.roleLabel}`
+                                  : ""}
                               </Link>
                             </Badge>
                           ))}
@@ -1253,7 +1754,9 @@ export default function TitlePage() {
                             >
                               <Link
                                 href={`/publishers/${
-                                  publisher.slug || publisher.id || encodeURIComponent(publisher.name)
+                                  publisher.slug ||
+                                  publisher.id ||
+                                  encodeURIComponent(publisher.name)
                                 }`}
                               >
                                 {publisher.name}
@@ -1297,9 +1800,9 @@ export default function TitlePage() {
                               className="h-auto rounded-2xl px-3 py-2"
                             >
                               <Link
-                                  href={`/catalog?tags=${encodeURIComponent(
-                                      tag.slug || tag.id || tag.name || ""
-                                    )}`}
+                                href={`/catalog?tags=${encodeURIComponent(
+                                  tag.slug || tag.id || tag.name || ""
+                                )}`}
                               >
                                 {tag.name}
                               </Link>
