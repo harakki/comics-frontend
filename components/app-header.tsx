@@ -2,15 +2,17 @@
 
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState, type FormEventHandler } from "react"
+import { useEffect, useState, type ComponentProps } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
+  getAuthTokenClaims,
   buildLoginHref,
   hasAuthToken,
   initKeycloak,
   startLogout,
 } from "@/lib/axios-instance"
+import { hasAdminRole } from "@/lib/user-space"
 import { cn } from "@/lib/utils"
 
 type NavItem = {
@@ -24,6 +26,8 @@ const primaryNavItems: NavItem[] = [
   { href: "/collections", label: "Коллекции" },
 ]
 
+const adminNavItem: NavItem = { href: "/admin", label: "Админ-панель" }
+
 const navLinkClassName =
   "rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
 
@@ -32,19 +36,23 @@ export function AppHeader() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [searchValue, setSearchValue] = useState(() => searchParams.get("q") || "")
 
   useEffect(() => {
     const syncAuthState = async () => {
       const authenticated = await initKeycloak().catch(() => false)
+      const claims = getAuthTokenClaims()
       setIsAuthenticated(authenticated || hasAuthToken())
+      setIsAdmin(hasAdminRole(claims))
     }
 
     void syncAuthState()
 
     const syncFromStorage = () => {
       setIsAuthenticated(hasAuthToken())
+      setIsAdmin(hasAdminRole(getAuthTokenClaims()))
     }
 
     globalThis.addEventListener("storage", syncFromStorage)
@@ -60,11 +68,14 @@ export function AppHeader() {
     ? `${pathname}?${searchParams.toString()}`
     : pathname
   const loginHref = buildLoginHref(currentPath)
+  const navItems = isAdmin ? [...primaryNavItems, adminNavItem] : primaryNavItems
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false)
   }
 
-  const handleSearchSubmit: FormEventHandler<HTMLFormElement> = (event) => {
+  const handleSearchSubmit: NonNullable<ComponentProps<"form">["onSubmit"]> = (
+    event
+  ) => {
     event.preventDefault()
 
     const normalizedQuery = searchValue.trim().slice(0, 120)
@@ -106,7 +117,7 @@ export function AppHeader() {
         </form>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {primaryNavItems.map((item) => {
+          {navItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`)
 
@@ -182,7 +193,7 @@ export function AppHeader() {
           </form>
 
           <nav className="flex flex-col gap-1">
-            {primaryNavItems.map((item) => {
+            {navItems.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(`${item.href}/`)
 

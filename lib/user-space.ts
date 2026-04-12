@@ -139,6 +139,10 @@ export const getUserRoles = (claims: AuthTokenClaims | null) =>
     (role) => !IGNORED_ROLE_NAMES.has(role)
   )
 
+export function hasAdminRole(claims: AuthTokenClaims | null) {
+  return getUserRoles(claims).some((role) => role.toLowerCase().includes("admin"))
+}
+
 export const mapTitleToCard = (title: TitleResponse): TitleCardProps => ({
   id: title.id,
   titleId: title.id,
