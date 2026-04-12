@@ -1,17 +1,20 @@
 "use client"
 
 import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { buildLoginHref, hasAuthToken, initKeycloak } from "@/lib/axios-instance"
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+} from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { getChapters } from "@/lib/api/chapters/chapters"
 import type { ChapterDetailsResponse } from "@/lib/api/api.schemas"
 
 export default function ChapterPage() {
   const params = useParams<{ chapterId: string | string[] }>()
-  const router = useRouter()
 
   const chapterId = useMemo(() => {
     const value = params?.chapterId
@@ -19,41 +22,8 @@ export default function ChapterPage() {
   }, [params?.chapterId])
 
   const [chapter, setChapter] = useState<ChapterDetailsResponse | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [isRead, setIsRead] = useState(false)
-  const [isUpdatingRead, setIsUpdatingRead] = useState(false)
-  const [nextUnreadChapterId, setNextUnreadChapterId] = useState<string | null>(null)
   const [errorText, setErrorText] = useState<string | null>(null)
-
-  const loginHref = buildLoginHref(`/chapters/${chapterId}`)
-
-  useEffect(() => {
-    let isMounted = true
-
-    const syncAuthState = async () => {
-      const authenticated = await initKeycloak().catch(() => false)
-
-      if (!isMounted) {
-        return
-      }
-
-      setIsAuthenticated(authenticated || hasAuthToken())
-    }
-
-    void syncAuthState()
-
-    const syncFromStorage = () => {
-      setIsAuthenticated(hasAuthToken())
-    }
-
-    globalThis.addEventListener("storage", syncFromStorage)
-
-    return () => {
-      isMounted = false
-      globalThis.removeEventListener("storage", syncFromStorage)
-    }
-  }, [])
 
   useEffect(() => {
     if (!chapterId) {
@@ -67,8 +37,6 @@ export default function ChapterPage() {
     const loadChapter = async () => {
       setIsLoading(true)
       setErrorText(null)
-      setIsRead(false)
-      setNextUnreadChapterId(null)
 
       try {
         const details = await getChapters().getFullChapter(chapterId)
@@ -78,18 +46,6 @@ export default function ChapterPage() {
         }
 
         setChapter(details)
-
-        if (!isAuthenticated) {
-          return
-        }
-
-        const readStatus = await getChapters().isChapterRead(chapterId).catch(() => null)
-
-        if (!isMounted) {
-          return
-        }
-
-        setIsRead(Boolean(readStatus?.isRead))
       } catch {
         if (!isMounted) {
           return
@@ -109,26 +65,7 @@ export default function ChapterPage() {
     return () => {
       isMounted = false
     }
-  }, [chapterId, isAuthenticated])
-
-  const handleMarkRead = async () => {
-    if (!isAuthenticated || !chapterId) {
-      return
-    }
-
-    setIsUpdatingRead(true)
-
-    try {
-      const response = await getChapters().recordChapterRead(chapterId, {
-        readTimeMillis: 0,
-      })
-
-      setIsRead(true)
-      setNextUnreadChapterId(response?.chapterId || null)
-    } finally {
-      setIsUpdatingRead(false)
-    }
-  }
+  }, [chapterId])
 
   if (isLoading) {
     return (
@@ -153,64 +90,12 @@ export default function ChapterPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 p-6">
+    <div className="mx-auto w-full max-w-4xl space-y-4 p-6">
       <header className="space-y-3">
         <h1 className="text-2xl font-semibold">
           Глава {chapter.displayNumber || "?"}
           {chapter.name ? `: ${chapter.name}` : ""}
         </h1>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {chapter.titleId ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/titles/${chapter.titleId}`}>К тайтлу</Link>
-            </Button>
-          ) : null}
-
-          {chapter.prevChapterId ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/chapters/${chapter.prevChapterId}`}>
-                Предыдущая
-              </Link>
-            </Button>
-          ) : null}
-
-          {chapter.nextChapterId ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/chapters/${chapter.nextChapterId}`}>Следующая</Link>
-            </Button>
-          ) : null}
-
-          {isAuthenticated ? (
-            <Button
-              type="button"
-              size="sm"
-              disabled={isUpdatingRead}
-              onClick={() => {
-                void handleMarkRead()
-              }}
-            >
-              {isRead ? "Прочитано" : "Отметить прочитанной"}
-            </Button>
-          ) : (
-            <Button asChild variant="outline" size="sm">
-              <Link href={loginHref}>Войти для отметки прочтения</Link>
-            </Button>
-          )}
-
-          {nextUnreadChapterId ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                router.push(`/chapters/${nextUnreadChapterId}`)
-              }}
-            >
-              Открыть следующую непрочитанную
-            </Button>
-          ) : null}
-        </div>
       </header>
 
       <section className="space-y-4">
@@ -218,11 +103,8 @@ export default function ChapterPage() {
           chapter.pages.map((page, index) => (
             <article
               key={page.id || page.mediaId || `${page.pageOrder || index}`}
-              className="overflow-hidden rounded-lg border bg-card"
+              className="overflow-hidden border bg-card"
             >
-              <div className="border-b px-3 py-2 text-xs text-muted-foreground">
-                Страница {page.pageOrder || index + 1}
-              </div>
               {page.url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -244,6 +126,56 @@ export default function ChapterPage() {
           </p>
         )}
       </section>
+
+      <nav className="sticky bottom-3 z-20 -mx-1 grid grid-cols-3 items-center gap-2 border bg-background/95 px-1 py-2 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80">
+        {chapter.prevChapterId ? (
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <Link
+              href={`/chapters/${chapter.prevChapterId}`}
+              className="flex items-center justify-center gap-2"
+            >
+              <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={1.8} className="size-4" />
+              <span>Назад</span>
+            </Link>
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className="w-full" disabled>
+            <span className="flex items-center justify-center gap-2">
+              <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={1.8} className="size-4" />
+              <span>Назад</span>
+            </span>
+          </Button>
+        )}
+
+        {chapter.titleId ? (
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <Link href={`/titles/${chapter.titleId}`}>К тайтлу</Link>
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className="w-full" disabled>
+            К тайтлу
+          </Button>
+        )}
+
+        {chapter.nextChapterId ? (
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <Link
+              href={`/chapters/${chapter.nextChapterId}`}
+              className="flex items-center justify-center gap-2"
+            >
+              <span>Вперед</span>
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={1.8} className="size-4" />
+            </Link>
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className="w-full" disabled>
+            <span className="flex items-center justify-center gap-2">
+              <span>Вперед</span>
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={1.8} className="size-4" />
+            </span>
+          </Button>
+        )}
+      </nav>
     </div>
   )
 }
