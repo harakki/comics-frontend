@@ -131,6 +131,24 @@
             "schema": { "type": "string", "example": "JP" }
           },
           {
+            "name": "authorId",
+            "in": "query",
+            "description": "Filter by author UUID",
+            "schema": {
+              "type": "string",
+              "example": "0195a69f-0c3e-7ca5-adf0-44ec2e4b5d1a"
+            }
+          },
+          {
+            "name": "publisherId",
+            "in": "query",
+            "description": "Filter by publisher UUID",
+            "schema": {
+              "type": "string",
+              "example": "0195a69f-0c3e-7ca5-adf0-44ec2e4b5d1a"
+            }
+          },
+          {
             "name": "tags",
             "in": "query",
             "description": "Filter by tag UUIDs",
@@ -2319,18 +2337,6 @@
       }
     },
     "responses": {
-      "Conflict": {
-        "description": "Resource conflict (e.g., duplicate)",
-        "content": {
-          "application/problem+json": {
-            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
-          }
-        }
-      },
-      "Forbidden": { "description": "Insufficient permissions" },
-      "Unauthorized": {
-        "description": "Missing or invalid authentication token"
-      },
       "NotFound": {
         "description": "Resource not found",
         "content": {
@@ -2339,8 +2345,12 @@
           }
         }
       },
-      "BadRequest": {
-        "description": "Validation error or malformed request",
+      "Unauthorized": {
+        "description": "Missing or invalid authentication token"
+      },
+      "Forbidden": { "description": "Insufficient permissions" },
+      "Conflict": {
+        "description": "Resource conflict (e.g., duplicate)",
         "content": {
           "application/problem+json": {
             "schema": { "$ref": "#/components/schemas/ProblemDetail" }
@@ -2349,6 +2359,14 @@
       },
       "InternalServerError": {
         "description": "Unexpected server error",
+        "content": {
+          "application/problem+json": {
+            "schema": { "$ref": "#/components/schemas/ProblemDetail" }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Validation error or malformed request",
         "content": {
           "application/problem+json": {
             "schema": { "$ref": "#/components/schemas/ProblemDetail" }

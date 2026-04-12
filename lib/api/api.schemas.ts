@@ -560,14 +560,9 @@ export interface WeeklyPopularTitleResponse {
 }
 
 /**
- * Resource conflict (e.g., duplicate)
+ * Resource not found
  */
-export type ConflictResponse = ProblemDetail
-
-/**
- * Insufficient permissions
- */
-export type ForbiddenResponse = void
+export type NotFoundResponse = ProblemDetail
 
 /**
  * Missing or invalid authentication token
@@ -575,19 +570,24 @@ export type ForbiddenResponse = void
 export type UnauthorizedResponse = void
 
 /**
- * Resource not found
+ * Insufficient permissions
  */
-export type NotFoundResponse = ProblemDetail
+export type ForbiddenResponse = void
 
 /**
- * Validation error or malformed request
+ * Resource conflict (e.g., duplicate)
  */
-export type BadRequestResponse = ProblemDetail
+export type ConflictResponse = ProblemDetail
 
 /**
  * Unexpected server error
  */
 export type InternalServerErrorResponse = ProblemDetail
+
+/**
+ * Validation error or malformed request
+ */
+export type BadRequestResponse = ProblemDetail
 
 export type SearchTitlesParams = {
   /**
@@ -620,6 +620,14 @@ export type SearchTitlesParams = {
    * Filter by Country ISO Code
    */
   country?: string
+  /**
+   * Filter by author UUID
+   */
+  authorId?: string
+  /**
+   * Filter by publisher UUID
+   */
+  publisherId?: string
   /**
    * Filter by tag UUIDs
    */
