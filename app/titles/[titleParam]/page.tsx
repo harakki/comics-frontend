@@ -68,9 +68,11 @@ import type {
   TitleAuthorResponse,
   TitlePublisherResponse,
   TitleResponse,
+  PersonalRecommendationResponse,
   UserCollectionResponse,
 } from "@/lib/api/api.schemas"
 import { getTitles } from "@/lib/api/titles/titles"
+import { getRecommendations } from "@/lib/api/recommendations/recommendations"
 import {
   buildLoginHref,
   hasAuthToken,
@@ -502,6 +504,10 @@ export default function TitlePage() {
   const [isLibraryLoading, setIsLibraryLoading] = useState(false)
   const [isLibrarySaving, setIsLibrarySaving] = useState(false)
   const [libraryNotice, setLibraryNotice] = useState<string | null>(null)
+  const [similarTitles, setSimilarTitles] = useState<
+    PersonalRecommendationResponse[]
+  >([])
+  const [isSimilarLoading, setIsSimilarLoading] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -901,10 +907,14 @@ export default function TitlePage() {
         return
       }
 
-      const [analyticsResult, chaptersResult] = await Promise.allSettled([
-        getAnalytics().getTitleAnalytics(resolvedTitle.id),
-        getChapters().getChaptersInfoByTitle(resolvedTitle.id),
-      ])
+      setIsSimilarLoading(true)
+      const [analyticsResult, chaptersResult, similarResult] =
+        await Promise.allSettled([
+          getAnalytics().getTitleAnalytics(resolvedTitle.id),
+          getChapters().getChaptersInfoByTitle(resolvedTitle.id),
+          // similar titles are optional, don't block main content
+          getRecommendations().getSimilarTitles(resolvedTitle.id, { limit: 8 }),
+        ])
 
       if (!isMounted) {
         return
@@ -916,6 +926,10 @@ export default function TitlePage() {
       setChapters(
         chaptersResult.status === "fulfilled" ? chaptersResult.value || [] : []
       )
+      setSimilarTitles(
+        similarResult.status === "fulfilled" ? similarResult.value || [] : []
+      )
+      setIsSimilarLoading(false)
       setIsLoading(false)
     }
 
@@ -1811,6 +1825,64 @@ export default function TitlePage() {
                         </div>
                       </div>
                     ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {isSimilarLoading ? (
+                <Card className="border border-border/70 bg-card/90 shadow-sm">
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-muted-foreground">Загружаем похожие тайтлы...</p>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {similarTitles.length > 0 && (
+                <Card className="border border-border/70 bg-card/90 shadow-sm">
+                  <CardHeader className="border-b border-border/70">
+                    <CardTitle className="flex items-center gap-2">
+                      <HugeiconsIcon
+                        icon={UserGroupIcon}
+                        strokeWidth={1.8}
+                        className="size-5"
+                      />
+                      <span>Похожие</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Тайтлы, которые могут вам понравиться.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-6">
+                    <div className="flex flex-col gap-3">
+                      {similarTitles.map((item) => (
+                        <Link
+                          key={item.titleId || item.slug || item.name}
+                          href={`/titles/${item.slug || item.titleId}`}
+                          className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/70 p-2 hover:border-primary/40"
+                        >
+                          <div className="relative h-20 w-14 flex-shrink-0 overflow-hidden rounded-md">
+                            <MediaImage
+                              mediaId={item.mainCoverMediaId}
+                              alt={item.name || "Обложка"}
+                              fill
+                              className="object-cover"
+                              fallback={<div className="flex h-full items-center justify-center bg-muted text-xs text-muted-foreground">Нет</div>}
+                            />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">
+                              {item.name || "Без названия"}
+                            </div>
+                            {typeof item.score === "number" ? (
+                              <div className="text-xs text-muted-foreground">
+                                Оценка: {item.score.toFixed(0)}
+                              </div>
+                            ) : null}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               )}

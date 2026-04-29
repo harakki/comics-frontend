@@ -102,7 +102,7 @@
             "required": false,
             "schema": {
               "type": "array",
-              "default": ["updatedAt,DESC", "createdAt,DESC"],
+              "default": ["updatedAt,DESC"],
               "items": { "type": "string" }
             }
           },
@@ -1330,6 +1330,47 @@
         }
       }
     },
+    "/api/v1/titles/{titleId}/similar-titles": {
+      "get": {
+        "tags": ["Recommendations"],
+        "summary": "Get similar titles for given title",
+        "operationId": "getSimilarTitles",
+        "parameters": [
+          {
+            "name": "titleId",
+            "in": "path",
+            "description": "Title UUID",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max number of similar titles",
+            "required": false,
+            "schema": { "type": "integer", "format": "int32" },
+            "example": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonalRecommendationResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
     "/api/v1/titles/{titleId}/next-chapter": {
       "get": {
         "tags": ["Chapters"],
@@ -2154,6 +2195,17 @@
           "page": { "$ref": "#/components/schemas/PageMetadata" }
         }
       },
+      "PersonalRecommendationResponse": {
+        "type": "object",
+        "properties": {
+          "titleId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "mainCoverMediaId": { "type": "string", "format": "uuid" },
+          "slug": { "type": "string" },
+          "score": { "type": "number", "format": "double" },
+          "reason": { "type": "string" }
+        }
+      },
       "ChapterSummaryResponse": {
         "type": "object",
         "properties": {
@@ -2201,17 +2253,6 @@
             "items": { "$ref": "#/components/schemas/TagResponse" }
           },
           "page": { "$ref": "#/components/schemas/PageMetadata" }
-        }
-      },
-      "PersonalRecommendationResponse": {
-        "type": "object",
-        "properties": {
-          "titleId": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "mainCoverMediaId": { "type": "string", "format": "uuid" },
-          "slug": { "type": "string" },
-          "score": { "type": "number", "format": "double" },
-          "reason": { "type": "string" }
         }
       },
       "PagedModelPublisherResponse": {
@@ -2345,12 +2386,8 @@
           }
         }
       },
-      "Unauthorized": {
-        "description": "Missing or invalid authentication token"
-      },
-      "Forbidden": { "description": "Insufficient permissions" },
-      "Conflict": {
-        "description": "Resource conflict (e.g., duplicate)",
+      "BadRequest": {
+        "description": "Validation error or malformed request",
         "content": {
           "application/problem+json": {
             "schema": { "$ref": "#/components/schemas/ProblemDetail" }
@@ -2365,13 +2402,17 @@
           }
         }
       },
-      "BadRequest": {
-        "description": "Validation error or malformed request",
+      "Conflict": {
+        "description": "Resource conflict (e.g., duplicate)",
         "content": {
           "application/problem+json": {
             "schema": { "$ref": "#/components/schemas/ProblemDetail" }
           }
         }
+      },
+      "Forbidden": { "description": "Insufficient permissions" },
+      "Unauthorized": {
+        "description": "Missing or invalid authentication token"
       }
     },
     "securitySchemes": {

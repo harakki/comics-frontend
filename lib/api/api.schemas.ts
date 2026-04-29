@@ -459,6 +459,15 @@ export interface PagedModelTitleResponse {
   page?: PageMetadata
 }
 
+export interface PersonalRecommendationResponse {
+  titleId?: string
+  name?: string
+  mainCoverMediaId?: string
+  slug?: string
+  score?: number
+  reason?: string
+}
+
 export interface ChapterSummaryResponse {
   id?: string
   displayNumber?: string
@@ -483,15 +492,6 @@ export interface TitleAnalyticsResponse {
 export interface PagedModelTagResponse {
   content?: TagResponse[]
   page?: PageMetadata
-}
-
-export interface PersonalRecommendationResponse {
-  titleId?: string
-  name?: string
-  mainCoverMediaId?: string
-  slug?: string
-  score?: number
-  reason?: string
 }
 
 export interface PagedModelPublisherResponse {
@@ -565,19 +565,9 @@ export interface WeeklyPopularTitleResponse {
 export type NotFoundResponse = ProblemDetail
 
 /**
- * Missing or invalid authentication token
+ * Validation error or malformed request
  */
-export type UnauthorizedResponse = void
-
-/**
- * Insufficient permissions
- */
-export type ForbiddenResponse = void
-
-/**
- * Resource conflict (e.g., duplicate)
- */
-export type ConflictResponse = ProblemDetail
+export type BadRequestResponse = ProblemDetail
 
 /**
  * Unexpected server error
@@ -585,9 +575,19 @@ export type ConflictResponse = ProblemDetail
 export type InternalServerErrorResponse = ProblemDetail
 
 /**
- * Validation error or malformed request
+ * Resource conflict (e.g., duplicate)
  */
-export type BadRequestResponse = ProblemDetail
+export type ConflictResponse = ProblemDetail
+
+/**
+ * Insufficient permissions
+ */
+export type ForbiddenResponse = void
+
+/**
+ * Missing or invalid authentication token
+ */
+export type UnauthorizedResponse = void
 
 export type SearchTitlesParams = {
   /**
@@ -753,6 +753,13 @@ export type GetUserLibraryParams = {
    * Sorting criteria in the format: property,(asc|desc). Default sort order is ascending. Multiple sort criteria are supported.
    */
   sort?: string[]
+}
+
+export type GetSimilarTitlesParams = {
+  /**
+   * Max number of similar titles
+   */
+  limit?: number
 }
 
 export type GetMyRecommendationsParams = {

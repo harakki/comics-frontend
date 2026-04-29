@@ -3,10 +3,11 @@
  * Do not edit manually.
  * Comics API
  * RESTful API for managing comics service.
- * OpenAPI spec version: 1.0.1
+ * OpenAPI spec version: 2.0.0
  */
 import type {
   GetMyRecommendationsParams,
+  GetSimilarTitlesParams,
   PersonalRecommendationResponse,
 } from "../api.schemas"
 
@@ -15,6 +16,25 @@ import { customInstance } from "../../axios-instance"
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1]
 
 export const getRecommendations = () => {
+  /**
+   * @summary Get similar titles for given title
+   */
+  const getSimilarTitles = (
+    titleId: string,
+    params?: GetSimilarTitlesParams,
+    options?: SecondParameter<
+      typeof customInstance<PersonalRecommendationResponse[]>
+    >
+  ) => {
+    return customInstance<PersonalRecommendationResponse[]>(
+      {
+        url: `/api/v1/titles/${titleId}/similar-titles`,
+        method: "GET",
+        params,
+      },
+      options
+    )
+  }
   /**
    * @summary Get personal recommendations for current user
    */
@@ -29,8 +49,11 @@ export const getRecommendations = () => {
       options
     )
   }
-  return { getMyRecommendations }
+  return { getSimilarTitles, getMyRecommendations }
 }
+export type GetSimilarTitlesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getRecommendations>["getSimilarTitles"]>>
+>
 export type GetMyRecommendationsResult = NonNullable<
   Awaited<
     ReturnType<ReturnType<typeof getRecommendations>["getMyRecommendations"]>
