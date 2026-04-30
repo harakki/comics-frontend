@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Comics API
  * RESTful API for managing comics service.
- * OpenAPI spec version: 2.0.0
+ * OpenAPI spec version: 2.2.0
  */
 /**
  * RFC 9457 Problem Details
@@ -560,24 +560,32 @@ export interface WeeklyPopularTitleResponse {
 }
 
 /**
+ * All time top title item
+ */
+export interface AllTimePopularTitleResponse {
+  /** Title unique identifier */
+  titleId?: string
+  /** Main cover media unique identifier */
+  mainCoverMediaId?: string
+  /** Title name */
+  name?: string
+  /** Title slug */
+  slug?: string
+  /** Views */
+  views?: number
+  /** Rank in top list */
+  rank?: number
+}
+
+/**
  * Resource not found
  */
 export type NotFoundResponse = ProblemDetail
 
 /**
- * Validation error or malformed request
+ * Missing or invalid authentication token
  */
-export type BadRequestResponse = ProblemDetail
-
-/**
- * Unexpected server error
- */
-export type InternalServerErrorResponse = ProblemDetail
-
-/**
- * Resource conflict (e.g., duplicate)
- */
-export type ConflictResponse = ProblemDetail
+export type UnauthorizedResponse = void
 
 /**
  * Insufficient permissions
@@ -585,9 +593,19 @@ export type ConflictResponse = ProblemDetail
 export type ForbiddenResponse = void
 
 /**
- * Missing or invalid authentication token
+ * Resource conflict (e.g., duplicate)
  */
-export type UnauthorizedResponse = void
+export type ConflictResponse = ProblemDetail
+
+/**
+ * Unexpected server error
+ */
+export type InternalServerErrorResponse = ProblemDetail
+
+/**
+ * Validation error or malformed request
+ */
+export type BadRequestResponse = ProblemDetail
 
 export type SearchTitlesParams = {
   /**

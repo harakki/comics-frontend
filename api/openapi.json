@@ -4,7 +4,7 @@
     "title": "Comics API",
     "description": "RESTful API for managing comics service.",
     "contact": { "name": "harakki", "url": "https://github.com/harakki" },
-    "version": "2.0.0"
+    "version": "2.2.0"
   },
   "servers": [
     { "url": "http://localhost:8080", "description": "Generated server url" }
@@ -1677,6 +1677,28 @@
         }
       }
     },
+    "/api/v1/analytics/titles/top-all-time": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get top 10 popular titles of all time",
+        "operationId": "getAllTimePopularTitles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AllTimePopularTitleResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/media/{id}": {
       "delete": {
         "tags": ["Media"],
@@ -2375,6 +2397,46 @@
             "example": 1
           }
         }
+      },
+      "AllTimePopularTitleResponse": {
+        "type": "object",
+        "description": "All time top title item",
+        "properties": {
+          "titleId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Title unique identifier",
+            "example": "019b9d1e-bc3a-70f3-8520-36e8d82dc9e0"
+          },
+          "mainCoverMediaId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Main cover media unique identifier",
+            "example": "019b9d1e-bc3a-70f3-8520-36e8d82dc9e0"
+          },
+          "name": {
+            "type": "string",
+            "description": "Title name",
+            "example": "Chainsaw Man"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Title slug",
+            "example": "chainsaw-man"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Views",
+            "example": 1242
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Rank in top list",
+            "example": 1
+          }
+        }
       }
     },
     "responses": {
@@ -2386,8 +2448,12 @@
           }
         }
       },
-      "BadRequest": {
-        "description": "Validation error or malformed request",
+      "Unauthorized": {
+        "description": "Missing or invalid authentication token"
+      },
+      "Forbidden": { "description": "Insufficient permissions" },
+      "Conflict": {
+        "description": "Resource conflict (e.g., duplicate)",
         "content": {
           "application/problem+json": {
             "schema": { "$ref": "#/components/schemas/ProblemDetail" }
@@ -2402,17 +2468,13 @@
           }
         }
       },
-      "Conflict": {
-        "description": "Resource conflict (e.g., duplicate)",
+      "BadRequest": {
+        "description": "Validation error or malformed request",
         "content": {
           "application/problem+json": {
             "schema": { "$ref": "#/components/schemas/ProblemDetail" }
           }
         }
-      },
-      "Forbidden": { "description": "Insufficient permissions" },
-      "Unauthorized": {
-        "description": "Missing or invalid authentication token"
       }
     },
     "securitySchemes": {

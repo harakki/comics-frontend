@@ -3,9 +3,10 @@
  * Do not edit manually.
  * Comics API
  * RESTful API for managing comics service.
- * OpenAPI spec version: 1.0.1
+ * OpenAPI spec version: 2.2.0
  */
 import type {
+  AllTimePopularTitleResponse,
   TitleAnalyticsResponse,
   WeeklyPopularTitleResponse,
 } from "../api.schemas"
@@ -40,7 +41,24 @@ export const getAnalytics = () => {
       options
     )
   }
-  return { getTitleAnalytics, getTopWeeklyPopularTitles }
+  /**
+   * @summary Get top 10 popular titles of all time
+   */
+  const getAllTimePopularTitles = (
+    options?: SecondParameter<
+      typeof customInstance<AllTimePopularTitleResponse[]>
+    >
+  ) => {
+    return customInstance<AllTimePopularTitleResponse[]>(
+      { url: `/api/v1/analytics/titles/top-all-time`, method: "GET" },
+      options
+    )
+  }
+  return {
+    getTitleAnalytics,
+    getTopWeeklyPopularTitles,
+    getAllTimePopularTitles,
+  }
 }
 export type GetTitleAnalyticsResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAnalytics>["getTitleAnalytics"]>>
@@ -48,5 +66,10 @@ export type GetTitleAnalyticsResult = NonNullable<
 export type GetTopWeeklyPopularTitlesResult = NonNullable<
   Awaited<
     ReturnType<ReturnType<typeof getAnalytics>["getTopWeeklyPopularTitles"]>
+  >
+>
+export type GetAllTimePopularTitlesResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getAnalytics>["getAllTimePopularTitles"]>
   >
 >
