@@ -10,7 +10,6 @@ import { getAnalytics } from "@/lib/api/analytics/analytics"
 import { getRecommendations } from "@/lib/api/recommendations/recommendations"
 import { getTitles } from "@/lib/api/titles/titles"
 import type {
-  AllTimePopularTitleResponse,
   PersonalRecommendationResponse,
   WeeklyPopularTitleResponse,
   TitleResponse,
@@ -36,17 +35,33 @@ const mapRecommendationToCard = (
   mainCoverMediaId: recommendation.mainCoverMediaId,
 })
 
-const mapPopularTitleToCard = <
-  T extends Pick<
-    WeeklyPopularTitleResponse,
-    "titleId" | "mainCoverMediaId" | "name" | "slug"
-  >,
->(title: T): TitleCardProps => ({
+type PopularTitleBase = Pick<
+  WeeklyPopularTitleResponse,
+  "titleId" | "mainCoverMediaId" | "name" | "slug"
+>
+
+const mapPopularTitleBaseToCard = (title: PopularTitleBase): TitleCardProps => ({
   id: title.titleId,
   titleId: title.titleId,
   mainCoverMediaId: title.mainCoverMediaId,
   name: title.name,
   slug: title.slug,
+})
+
+const mapWeeklyPopularToCard = (
+  title: WeeklyPopularTitleResponse
+): TitleCardProps => ({
+  ...mapPopularTitleBaseToCard(title),
+  rank: title.rank,
+  views: title.weeklyViews,
+})
+
+const mapAllTimePopularToCard = (
+  title: PopularTitleBase & { rank?: number; views?: number }
+): TitleCardProps => ({
+  ...mapPopularTitleBaseToCard(title),
+  rank: title.rank,
+  views: title.views,
 })
 
 const PAGE_SIZE = 10
@@ -193,7 +208,7 @@ export default function Page() {
         setPopularTitles(
           [...(response || [])]
             .sort((left, right) => (left.rank || 0) - (right.rank || 0))
-            .map(mapPopularTitleToCard)
+            .map(mapWeeklyPopularToCard)
         )
       } catch {
         if (!isMounted) {
@@ -231,7 +246,7 @@ export default function Page() {
         setAllTimePopularTitles(
           [...(response || [])]
             .sort((left, right) => (left.rank || 0) - (right.rank || 0))
-            .map(mapPopularTitleToCard)
+            .map(mapAllTimePopularToCard)
         )
       } catch {
         if (!isMounted) {
@@ -351,7 +366,7 @@ export default function Page() {
               )
             }
 
-            const page = item.value as number
+            const page = item.value
             const isCurrentPage = page === currentTitlePage
 
             return (
