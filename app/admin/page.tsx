@@ -1027,7 +1027,7 @@ function AdminWorkspace() {
       <UserSpacePage>
         <Card className="border border-border/70 bg-card/90 shadow-sm">
           <CardHeader className="border-b border-border/70">
-            <CardTitle>Доступ к админке закрыт</CardTitle>
+            <CardTitle>Доступ к админ-панели закрыт</CardTitle>
             <CardDescription>
               Для работы с тайтлами, авторами, издателями и тегами нужна учётная
               запись с admin-ролью.
@@ -1039,7 +1039,7 @@ function AdminWorkspace() {
               проекта.
             </p>
             <Button asChild>
-              <Link href={buildLoginHref("/admin")}>Войти в админку</Link>
+              <Link href={buildLoginHref("/admin")}>Войти в админ-панель</Link>
             </Button>
           </CardContent>
         </Card>
@@ -1050,7 +1050,7 @@ function AdminWorkspace() {
   return (
     <UserSpacePage>
       <DashboardHero
-        eyebrow="Админка"
+        eyebrow="Админ-панель"
         title="Контентная панель"
         description="Создавайте и редактируйте тайтлы, авторов, издателей и теги в одном месте. Публичные сущности сразу становятся доступны в каталоге и на связанных страницах."
         badges={

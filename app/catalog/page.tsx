@@ -745,7 +745,7 @@ export default function CatalogPage() {
             </label>
 
             <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Возрастной рейтинг</span>
+              <span className="text-muted-foreground">Возрастной рейтинг от</span>
               <select
                 name="contentRating"
                 defaultValue={filters.contentRating}
@@ -805,9 +805,6 @@ export default function CatalogPage() {
               <span className="text-muted-foreground">Теги</span>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">
-                  {isTagsLoading
-                    ? "Загружаем теги..."
-                    : `Найдено: ${filteredTags.length}`}
                 </span>
                 {filters.tags.length > 0 ? (
                   <Button
