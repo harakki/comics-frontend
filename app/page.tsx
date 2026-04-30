@@ -10,6 +10,7 @@ import { getAnalytics } from "@/lib/api/analytics/analytics"
 import { getRecommendations } from "@/lib/api/recommendations/recommendations"
 import { getTitles } from "@/lib/api/titles/titles"
 import type {
+  AllTimePopularTitleResponse,
   PersonalRecommendationResponse,
   WeeklyPopularTitleResponse,
   TitleResponse,
@@ -35,9 +36,12 @@ const mapRecommendationToCard = (
   mainCoverMediaId: recommendation.mainCoverMediaId,
 })
 
-const mapWeeklyPopularToCard = (
-  title: WeeklyPopularTitleResponse
-): TitleCardProps => ({
+const mapPopularTitleToCard = <
+  T extends Pick<
+    WeeklyPopularTitleResponse,
+    "titleId" | "mainCoverMediaId" | "name" | "slug"
+  >,
+>(title: T): TitleCardProps => ({
   id: title.titleId,
   titleId: title.titleId,
   mainCoverMediaId: title.mainCoverMediaId,
@@ -47,9 +51,17 @@ const mapWeeklyPopularToCard = (
 
 const PAGE_SIZE = 10
 
-const buildPaginationItems = (currentPage: number, totalPages: number) => {
+type PaginationItem = {
+  key: string
+  value: number | "ellipsis"
+}
+
+const buildPaginationItems = (
+  currentPage: number,
+  totalPages: number,
+): PaginationItem[] => {
   if (totalPages <= 1) {
-    return [0]
+    return [{ key: "latest-titles-page-1", value: 0 }]
   }
 
   const pageSet = new Set<number>([
@@ -65,14 +77,17 @@ const buildPaginationItems = (currentPage: number, totalPages: number) => {
   return Array.from(pageSet)
     .filter((page) => page >= 0 && page < totalPages)
     .sort((left, right) => left - right)
-    .reduce<Array<number | "ellipsis">>((acc, page) => {
-      const previous = acc.at(-1)
+    .reduce<PaginationItem[]>((acc, page) => {
+      const previous = acc.at(-1)?.value
 
       if (typeof previous === "number" && page - previous > 1) {
-        acc.push("ellipsis")
+        acc.push({
+          key: `latest-titles-pagination-ellipsis-${previous}-${page}`,
+          value: "ellipsis",
+        })
       }
 
-      acc.push(page)
+      acc.push({ key: `latest-titles-page-${page + 1}`, value: page })
       return acc
     }, [])
 }
@@ -82,10 +97,12 @@ export default function Page() {
   const [totalTitlePages, setTotalTitlePages] = useState(1)
   const [currentTitlePage, setCurrentTitlePage] = useState(0)
   const [popularTitles, setPopularTitles] = useState<TitleCardProps[]>([])
+  const [allTimePopularTitles, setAllTimePopularTitles] = useState<TitleCardProps[]>([])
   const [recommendations, setRecommendations] = useState<TitleCardProps[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isTitlesLoading, setIsTitlesLoading] = useState(true)
   const [isPopularLoading, setIsPopularLoading] = useState(true)
+  const [isAllTimePopularLoading, setIsAllTimePopularLoading] = useState(true)
   const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(true)
 
   const paginationItems = useMemo(
@@ -176,7 +193,7 @@ export default function Page() {
         setPopularTitles(
           [...(response || [])]
             .sort((left, right) => (left.rank || 0) - (right.rank || 0))
-            .map(mapWeeklyPopularToCard)
+            .map(mapPopularTitleToCard)
         )
       } catch {
         if (!isMounted) {
@@ -192,6 +209,44 @@ export default function Page() {
     }
 
     void loadPopularTitles()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadAllTimePopularTitles = async () => {
+      setIsAllTimePopularLoading(true)
+
+      try {
+        const response = await getAnalytics().getAllTimePopularTitles()
+
+        if (!isMounted) {
+          return
+        }
+
+        setAllTimePopularTitles(
+          [...(response || [])]
+            .sort((left, right) => (left.rank || 0) - (right.rank || 0))
+            .map(mapPopularTitleToCard)
+        )
+      } catch {
+        if (!isMounted) {
+          return
+        }
+
+        setAllTimePopularTitles([])
+      } finally {
+        if (isMounted) {
+          setIsAllTimePopularLoading(false)
+        }
+      }
+    }
+
+    void loadAllTimePopularTitles()
 
     return () => {
       isMounted = false
@@ -265,6 +320,16 @@ export default function Page() {
       </section>
 
       <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Популярное за всё время</h2>
+        <TitleCardRow
+          items={allTimePopularTitles}
+          isLoading={isAllTimePopularLoading}
+          emptyText="Популярных тайтлов за всё время пока нет"
+          skeletonCount={8}
+        />
+      </section>
+
+      <section className="space-y-4">
         <h2 className="text-xl font-semibold">Последние загруженные тайтлы</h2>
         <TitleCardGrid
           items={titles}
@@ -273,11 +338,11 @@ export default function Page() {
         />
 
         <div className="flex flex-wrap justify-center gap-2">
-          {paginationItems.map((item, index) => {
-            if (item === "ellipsis") {
+          {paginationItems.map((item) => {
+            if (item.value === "ellipsis") {
               return (
                 <span
-                  key={`latest-titles-pagination-ellipsis-${index}`}
+                  key={item.key}
                   className="flex h-9 min-w-9 items-center justify-center px-2 text-sm text-muted-foreground"
                   aria-hidden
                 >
@@ -286,11 +351,12 @@ export default function Page() {
               )
             }
 
-            const isCurrentPage = item === currentTitlePage
+            const page = item.value as number
+            const isCurrentPage = page === currentTitlePage
 
             return (
               <Button
-                key={`latest-titles-page-${item + 1}`}
+                key={item.key}
                 type="button"
                 variant={isCurrentPage ? "default" : "outline"}
                 size="sm"
@@ -298,10 +364,10 @@ export default function Page() {
                 aria-current={isCurrentPage ? "page" : undefined}
                 disabled={isCurrentPage}
                 onClick={() => {
-                  setCurrentTitlePage(item)
+                  setCurrentTitlePage(page)
                 }}
               >
-                {item + 1}
+                {page + 1}
               </Button>
             )
           })}
