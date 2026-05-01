@@ -11,6 +11,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { getChapters } from "@/lib/api/chapters/chapters"
+import { getTitles } from "@/lib/api/titles/titles"
 import type { ChapterDetailsResponse } from "@/lib/api/api.schemas"
 
 export default function ChapterPage() {
@@ -22,6 +23,7 @@ export default function ChapterPage() {
   }, [params?.chapterId])
 
   const [chapter, setChapter] = useState<ChapterDetailsResponse | null>(null)
+  const [titleSlug, setTitleSlug] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorText, setErrorText] = useState<string | null>(null)
 
@@ -46,6 +48,20 @@ export default function ChapterPage() {
         }
 
         setChapter(details)
+
+        // Load title slug so "К тайтлу" can link by slug instead of UUID
+        try {
+          if (details?.titleId) {
+            const title = await getTitles().getTitle(details.titleId)
+            if (!isMounted) return
+            setTitleSlug(title?.slug || null)
+          } else {
+            setTitleSlug(null)
+          }
+        } catch {
+          // ignore failures, keep linking by id as a fallback
+          if (isMounted) setTitleSlug(null)
+        }
       } catch {
         if (!isMounted) {
           return
@@ -149,7 +165,7 @@ export default function ChapterPage() {
 
         {chapter.titleId ? (
           <Button asChild variant="outline" size="sm" className="w-full">
-            <Link href={`/titles/${chapter.titleId}`}>К тайтлу</Link>
+            <Link href={`/titles/${titleSlug ?? chapter.titleId}`}>К тайтлу</Link>
           </Button>
         ) : (
           <Button variant="outline" size="sm" className="w-full" disabled>
