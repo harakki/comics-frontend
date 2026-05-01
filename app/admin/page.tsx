@@ -266,6 +266,31 @@ const formatTitleValue = (value?: string) => toTrimmedString(value) || "—"
 const formatCardList = (values: string[], emptyText = "—") =>
   values.length > 0 ? values.join(", ") : emptyText
 
+const getUniqueTitleAuthorLabels = (authors?: TitleResponse["authors"]) => {
+  const labels: string[] = []
+  const seen = new Set<string>()
+
+  ;(authors || []).forEach((entry) => {
+    const name = toTrimmedString(entry.author?.name)
+
+    if (!name) {
+      return
+    }
+
+    const key =
+      toTrimmedString(entry.author?.id) ||
+      toTrimmedString(entry.author?.slug).toLowerCase() ||
+      name.toLowerCase()
+
+    if (!seen.has(key)) {
+      seen.add(key)
+      labels.push(name)
+    }
+  })
+
+  return labels
+}
+
 const getEntityLabel = (value?: string | null, fallback = "Элемент") =>
   toTrimmedString(value) || fallback
 
@@ -1154,9 +1179,7 @@ function AdminWorkspace() {
                         return null
                       }
 
-                      const authorLabels = (title.authors || [])
-                        .map((entry) => entry.author?.name || "")
-                        .filter(Boolean)
+                      const authorLabels = getUniqueTitleAuthorLabels(title.authors)
                       const publisherLabels = (title.publishers || [])
                         .map((entry) => entry.publisher?.name || "")
                         .filter(Boolean)

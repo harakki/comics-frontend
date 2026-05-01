@@ -64,6 +64,30 @@ const mapAllTimePopularToCard = (
   views: title.views,
 })
 
+const getCardIdentity = (item: TitleCardProps): string | null =>
+  item.id || item.titleId || item.slug || null
+
+const dedupeCardItems = (items: TitleCardProps[]): TitleCardProps[] => {
+  const unique: TitleCardProps[] = []
+  const seen = new Set<string>()
+
+  items.forEach((item) => {
+    const key = getCardIdentity(item)
+
+    if (!key) {
+      unique.push(item)
+      return
+    }
+
+    if (!seen.has(key)) {
+      seen.add(key)
+      unique.push(item)
+    }
+  })
+
+  return unique
+}
+
 const PAGE_SIZE = 10
 
 type PaginationItem = {
@@ -169,7 +193,7 @@ export default function Page() {
           return
         }
 
-        setTitles((response.content || []).map(mapTitleToCard))
+        setTitles(dedupeCardItems((response.content || []).map(mapTitleToCard)))
         setTotalTitlePages(response.page?.totalPages || 1)
       } catch {
         if (!isMounted) {
@@ -205,8 +229,19 @@ export default function Page() {
           return
         }
 
+        // Deduplicate items by titleId/slug to avoid React key collisions
+        const uniqueWeekly: WeeklyPopularTitleResponse[] = []
+        const seenWeekly = new Set<string>()
+        ;(response || []).forEach((t) => {
+          const key = t.titleId || t.slug || ""
+          if (!seenWeekly.has(key)) {
+            seenWeekly.add(key)
+            uniqueWeekly.push(t)
+          }
+        })
+
         setPopularTitles(
-          [...(response || [])]
+          [...uniqueWeekly]
             .sort((left, right) => (left.rank || 0) - (right.rank || 0))
             .map(mapWeeklyPopularToCard)
         )
@@ -243,8 +278,19 @@ export default function Page() {
           return
         }
 
+        // Deduplicate items by titleId/slug to avoid React key collisions
+        const uniqueAllTime: (typeof response)[0][] = []
+        const seenAllTime = new Set<string>()
+        ;(response || []).forEach((t) => {
+          const key = t.titleId || t.slug || ""
+          if (!seenAllTime.has(key)) {
+            seenAllTime.add(key)
+            uniqueAllTime.push(t)
+          }
+        })
+
         setAllTimePopularTitles(
-          [...(response || [])]
+          [...uniqueAllTime]
             .sort((left, right) => (left.rank || 0) - (right.rank || 0))
             .map(mapAllTimePopularToCard)
         )
@@ -289,7 +335,7 @@ export default function Page() {
           return
         }
 
-        setRecommendations((response || []).map(mapRecommendationToCard))
+        setRecommendations(dedupeCardItems((response || []).map(mapRecommendationToCard)))
       } catch {
         if (!isMounted) {
           return
