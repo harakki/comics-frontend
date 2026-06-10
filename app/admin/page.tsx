@@ -1,7 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from "react"
+import {
+  type ComponentProps,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 
 import { BookOpen01Icon } from "@hugeicons/core-free-icons"
 
@@ -67,6 +73,7 @@ import {
 } from "@/lib/axios-instance"
 import { hasAdminRole } from "@/lib/user-space"
 import { CONTENT_RATING_LABELS, TITLE_TYPE_LABELS } from "@/lib/constants"
+import { getChapters } from "@/lib/api/chapters/chapters"
 
 type AdminTab = "titles" | "authors" | "publishers" | "tags"
 
@@ -123,6 +130,13 @@ type TitleFormState = {
     | ""
   countryIsoCode: string
   mainCoverMediaId: string
+}
+
+type ChapterFormState = {
+  number: string
+  subNumber: string
+  name: string
+  volume: string
 }
 
 const ENTITY_PAGE_SIZE = 200
@@ -214,6 +228,13 @@ const createEmptyTitleForm = (): TitleFormState => ({
   contentRating: TitleCreateRequestContentRating.TWELVE_PLUS,
   countryIsoCode: "JP",
   mainCoverMediaId: "",
+})
+
+const createEmptyChapterForm = (): ChapterFormState => ({
+  number: "",
+  subNumber: "0",
+  name: "",
+  volume: "",
 })
 
 const normalizeIdList = (values: (string | undefined | null)[]) =>
@@ -351,7 +372,6 @@ const fetchAllTitles = async () => {
 }
 
 // noinspection JSComplexity
-//noinspection JSComplexity
 function AdminWorkspace() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -407,6 +427,18 @@ function AdminWorkspace() {
 
   const [pendingDelete, setPendingDelete] = useState<DeleteTarget | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Стейты для загрузки глав
+  const [isChapterDialogOpen, setIsChapterDialogOpen] = useState(false)
+  const [selectedTitleForChapter, setSelectedTitleForChapter] =
+    useState<TitleResponse | null>(null)
+  const [chapterForm, setChapterForm] = useState<ChapterFormState>(
+    createEmptyChapterForm
+  )
+  const [chapterFiles, setChapterFiles] = useState<File[]>([])
+  const [isChapterUploading, setIsChapterUploading] = useState(false)
+  const [chapterUploadProgress, setChapterUploadProgress] = useState("")
+  const [chapterMessage, setChapterMessage] = useState<string | null>(null)
 
   const loadAuthors = useCallback(async () => {
     try {
@@ -673,6 +705,13 @@ function AdminWorkspace() {
     setTitleMessage(null)
   }
 
+  const resetChapterFormUI = () => {
+    setChapterForm(createEmptyChapterForm())
+    setChapterFiles([])
+    setChapterMessage(null)
+    setChapterUploadProgress("")
+  }
+
   const openCreateTitleDialog = () => {
     resetTitleForm()
     setIsTitleDialogOpen(true)
@@ -686,6 +725,12 @@ function AdminWorkspace() {
   const openCreatePublisherDialog = () => {
     resetPublisherForm()
     setIsPublisherDialogOpen(true)
+  }
+
+  const openChapterDialog = (title: TitleResponse) => {
+    setSelectedTitleForChapter(title)
+    resetChapterFormUI()
+    setIsChapterDialogOpen(true)
   }
 
   const startEditingAuthor = (author: AuthorResponse) => {
@@ -791,7 +836,10 @@ function AdminWorkspace() {
         return
       }
 
-      setTitleForm((previous) => ({ ...previous, mainCoverMediaId: upload.id || "" }))
+      setTitleForm((previous) => ({
+        ...previous,
+        mainCoverMediaId: upload.id || "",
+      }))
     } catch {
       setCoverUploadError("Не удалось загрузить обложку")
     } finally {
@@ -987,6 +1035,139 @@ function AdminWorkspace() {
     }
   }
 
+  const submitChapter = async (event: React.FormEvent) => {
+    event.preventDefault()
+
+    if (!selectedTitleForChapter?.id) {
+      return
+    }
+
+    const num = parseInt(chapterForm.number, 10)
+    const subNum = parseInt(chapterForm.subNumber, 10)
+
+    if (isNaN(num) || isNaN(subNum)) {
+      setChapterMessage(
+        "Номер главы и подномер должны быть корректными числами"
+      )
+      return
+    }
+
+    if (chapterFiles.length === 0) {
+      setChapterMessage("Пожалуйста, выберите страницы для загрузки")
+      return
+    }
+
+    setIsChapterUploading(true)
+    setChapterMessage(null)
+
+    try {
+      // 1. Сортируем файлы (1.png, 2.png, 10.png)
+      const sortedFiles = [...chapterFiles].sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { numeric: true })
+      )
+
+      const pageIds: string[] = []
+
+      for (let i = 0; i < sortedFiles.length; i++) {
+        const file = sortedFiles[i]
+        setChapterUploadProgress(
+          `Загрузка страницы ${i + 1} из ${sortedFiles.length}...`
+        )
+
+        const { width, height } = await getImageDimensions(file)
+
+        // ЭТАП 1: Получаем ссылку для загрузки
+        let upload
+        try {
+          upload = await getMedia().generateUploadUrl({
+            originalFilename: file.name || `page-${i + 1}`,
+            contentType: file.type || "application/octet-stream",
+            width: Math.min(4100, Math.max(1, width)),
+            height: Math.min(4100, Math.max(1, height)),
+          })
+        } catch (err) {
+          console.error("Ошибка при получении ссылки (generateUploadUrl):", err)
+          throw new Error(
+            `Не удалось получить ссылку от API для файла ${file.name}`
+          )
+        }
+
+        if (!upload.id || !upload.url) {
+          throw new Error(`Бэкенд вернул пустую ссылку для файла: ${file.name}`)
+        }
+
+        // ЭТАП 2: Загружаем файл напрямую в MinIO
+        try {
+          const response = await fetch(upload.url, {
+            method: "PUT",
+            headers: {
+              "Content-Type": file.type || "application/octet-stream",
+            },
+            body: file,
+          })
+
+          if (!response.ok) {
+            console.error("Ответ MinIO:", response.status, response.statusText)
+            throw new Error(
+              `MinIO отклонил загрузку файла (HTTP ${response.status})`
+            )
+          }
+        } catch (err) {
+          console.error("Ошибка загрузки в MinIO:", err)
+          throw new Error(
+            `Ошибка сети при загрузке в MinIO (вероятно CORS). Файл: ${file.name}`
+          )
+        }
+
+        pageIds.push(upload.id)
+      }
+
+      setChapterUploadProgress("Сохранение главы в базу данных...")
+
+      const payload = {
+        number: num,
+        subNumber: subNum,
+        name: chapterForm.name ? chapterForm.name.trim() : undefined,
+        volume: chapterForm.volume
+          ? parseInt(chapterForm.volume, 10)
+          : undefined,
+        pages: pageIds,
+      }
+
+      console.log("Отправляем payload на создание главы:", payload)
+
+      try {
+        await getChapters().createChapter(selectedTitleForChapter.id, payload)
+      } catch (err: any) {
+        console.error(
+          "Ошибка при вызове POST /chapters:",
+          err.response?.data || err.message
+        )
+        const backErrorMessage =
+          err.response?.data?.message || err.response?.data?.detail
+        throw new Error(
+          backErrorMessage
+            ? `Ошибка API: ${backErrorMessage}`
+            : "Сервер отклонил создание главы"
+        )
+      }
+
+      setChapterMessage("Глава успешно создана!")
+
+      setTimeout(() => {
+        setIsChapterDialogOpen(false)
+        resetChapterFormUI()
+      }, 1500)
+    } catch (error: any) {
+      // Теперь мы выводим точный текст ошибки
+      console.error("Полная ошибка submitChapter:", error)
+      setChapterMessage(error.message || "Произошла неизвестная ошибка")
+    } finally {
+      setIsChapterUploading(false)
+      setChapterUploadProgress("")
+    }
+  }
+
   const handleConfirmDelete = async () => {
     if (!pendingDelete || isDeleting) {
       return
@@ -1135,8 +1316,8 @@ function AdminWorkspace() {
                 <div className="space-y-1">
                   <CardTitle>Тайтлы</CardTitle>
                   <CardDescription>
-                    Создавайте новые тайтлы или редактируйте существующие в модальном
-                    окне.
+                    Создавайте новые тайтлы или редактируйте существующие в
+                    модальном окне. Вы также можете добавить к ним главы.
                   </CardDescription>
                 </div>
                 <Button type="button" onClick={openCreateTitleDialog}>
@@ -1152,7 +1333,8 @@ function AdminWorkspace() {
                       Существующие тайтлы
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Выбирайте тайтл для редактирования или удаления.
+                      Выбирайте тайтл для редактирования, удаления или
+                      добавления глав.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1179,7 +1361,9 @@ function AdminWorkspace() {
                         return null
                       }
 
-                      const authorLabels = getUniqueTitleAuthorLabels(title.authors)
+                      const authorLabels = getUniqueTitleAuthorLabels(
+                        title.authors
+                      )
                       const publisherLabels = (title.publishers || [])
                         .map((entry) => entry.publisher?.name || "")
                         .filter(Boolean)
@@ -1253,10 +1437,18 @@ function AdminWorkspace() {
                               <Button
                                 type="button"
                                 size="sm"
+                                variant="secondary"
+                                onClick={() => openChapterDialog(title)}
+                              >
+                                Добавить главу
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
                                 variant="outline"
                                 onClick={() => startEditingTitle(title)}
                               >
-                                Редактировать
+                                Изменить
                               </Button>
                               <Button
                                 type="button"
@@ -1288,6 +1480,7 @@ function AdminWorkspace() {
           </Card>
         </TabsContent>
 
+        {/* --- Остальные вкладки остались без изменений --- */}
         <TabsContent value="authors" className="mt-6 space-y-6">
           <Card className="border border-border/70 bg-card/90 shadow-sm">
             <CardHeader className="border-b border-border/70">
@@ -1693,7 +1886,10 @@ function AdminWorkspace() {
       </Tabs>
 
       <Dialog open={isTitleDialogOpen} onOpenChange={setIsTitleDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl" showCloseButton>
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto sm:max-w-5xl"
+          showCloseButton
+        >
           <DialogHeader>
             <DialogTitle>
               {editingTitleId ? "Редактирование тайтла" : "Новый тайтл"}
@@ -1781,7 +1977,8 @@ function AdminWorkspace() {
                   onChange={(event) =>
                     setTitleForm((previous) => ({
                       ...previous,
-                      titleStatus: event.target.value as TitleFormState["titleStatus"],
+                      titleStatus: event.target
+                        .value as TitleFormState["titleStatus"],
                     }))
                   }
                   className="h-8 w-full rounded-lg border bg-background px-2.5 text-sm"
@@ -1795,22 +1992,27 @@ function AdminWorkspace() {
               </label>
 
               <label className="space-y-1 text-sm">
-                <span className="text-muted-foreground">Возрастной рейтинг</span>
+                <span className="text-muted-foreground">
+                  Возрастной рейтинг
+                </span>
                 <select
                   value={titleForm.contentRating}
                   onChange={(event) =>
                     setTitleForm((previous) => ({
                       ...previous,
-                      contentRating: event.target.value as TitleFormState["contentRating"],
+                      contentRating: event.target
+                        .value as TitleFormState["contentRating"],
                     }))
                   }
                   className="h-8 w-full rounded-lg border bg-background px-2.5 text-sm"
                 >
-                  {Object.values(TitleCreateRequestContentRating).map((item) => (
-                    <option key={item} value={item}>
-                      {CONTENT_RATING_LABELS[item] || item}
-                    </option>
-                  ))}
+                  {Object.values(TitleCreateRequestContentRating).map(
+                    (item) => (
+                      <option key={item} value={item}>
+                        {CONTENT_RATING_LABELS[item] || item}
+                      </option>
+                    )
+                  )}
                 </select>
               </label>
 
@@ -1871,7 +2073,9 @@ function AdminWorkspace() {
                   }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {isCoverUploading ? "Загружаем обложку..." : "Поддерживаются изображения."}
+                  {isCoverUploading
+                    ? "Загружаем обложку..."
+                    : "Поддерживаются изображения."}
                 </p>
                 {coverUploadError ? (
                   <p className="text-xs text-destructive">{coverUploadError}</p>
@@ -1911,7 +2115,9 @@ function AdminWorkspace() {
                 />
                 <div className="max-h-72 space-y-2 overflow-auto pr-1">
                   {filteredTitleAuthors.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Авторы не найдены.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Авторы не найдены.
+                    </p>
                   ) : (
                     filteredTitleAuthors.map((author) => {
                       if (!author.id) {
@@ -1921,8 +2127,14 @@ function AdminWorkspace() {
                       const isSelected = Boolean(titleAuthorRoles[author.id])
 
                       return (
-                        <div key={author.id} className="rounded-xl border bg-background/60 p-3">
-                          <label aria-label={author.name || "Автор"} className="flex items-start gap-3">
+                        <div
+                          key={author.id}
+                          className="rounded-xl border bg-background/60 p-3"
+                        >
+                          <label
+                            aria-label={author.name || "Автор"}
+                            className="flex items-start gap-3"
+                          >
                             <input
                               type="checkbox"
                               className="mt-1"
@@ -1938,7 +2150,9 @@ function AdminWorkspace() {
                               }}
                             />
                             <div className="min-w-0 flex-1 space-y-1">
-                              <div className="text-sm font-medium">{author.name || "Без названия"}</div>
+                              <div className="text-sm font-medium">
+                                {author.name || "Без названия"}
+                              </div>
                               <div className="text-xs text-muted-foreground">
                                 {author.slug ? `/${author.slug}` : "Без slug"}
                               </div>
@@ -1978,19 +2192,25 @@ function AdminWorkspace() {
                 </div>
                 <Input
                   value={titlePublisherFilter}
-                  onChange={(event) => setTitlePublisherFilter(event.target.value)}
+                  onChange={(event) =>
+                    setTitlePublisherFilter(event.target.value)
+                  }
                   placeholder="Поиск издателя"
                 />
                 <div className="max-h-72 space-y-2 overflow-auto pr-1">
                   {filteredTitlePublishers.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Издатели не найдены.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Издатели не найдены.
+                    </p>
                   ) : (
                     filteredTitlePublishers.map((publisher) => {
                       if (!publisher.id) {
                         return null
                       }
 
-                      const isSelected = titlePublisherIds.includes(publisher.id)
+                      const isSelected = titlePublisherIds.includes(
+                        publisher.id
+                      )
 
                       return (
                         <label
@@ -2013,9 +2233,13 @@ function AdminWorkspace() {
                             }}
                           />
                           <div className="min-w-0 space-y-1">
-                            <div className="text-sm font-medium">{publisher.name || "Без названия"}</div>
+                            <div className="text-sm font-medium">
+                              {publisher.name || "Без названия"}
+                            </div>
                             <div className="text-xs text-muted-foreground">
-                              {publisher.slug ? `/${publisher.slug}` : "Без slug"}
+                              {publisher.slug
+                                ? `/${publisher.slug}`
+                                : "Без slug"}
                             </div>
                           </div>
                         </label>
@@ -2039,7 +2263,9 @@ function AdminWorkspace() {
                 />
                 <div className="max-h-72 space-y-2 overflow-auto pr-1">
                   {filteredTitleTags.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Теги не найдены.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Теги не найдены.
+                    </p>
                   ) : (
                     filteredTitleTags.map((tag) => {
                       if (!tag.id) {
@@ -2060,12 +2286,18 @@ function AdminWorkspace() {
                             checked={isSelected}
                             onChange={(event) => {
                               setTitleTagIds((previous) =>
-                                toggleListItem(previous, tag.id as string, event.target.checked)
+                                toggleListItem(
+                                  previous,
+                                  tag.id as string,
+                                  event.target.checked
+                                )
                               )
                             }}
                           />
                           <div className="min-w-0 space-y-1">
-                            <div className="text-sm font-medium">{tag.name || "Без названия"}</div>
+                            <div className="text-sm font-medium">
+                              {tag.name || "Без названия"}
+                            </div>
                             <div className="text-xs text-muted-foreground">
                               {tag.slug ? `/${tag.slug}` : "Без slug"}
                             </div>
@@ -2078,7 +2310,9 @@ function AdminWorkspace() {
               </div>
             </div>
 
-            {titleMessage ? <p className="text-sm text-muted-foreground">{titleMessage}</p> : null}
+            {titleMessage ? (
+              <p className="text-sm text-muted-foreground">{titleMessage}</p>
+            ) : null}
 
             <DialogFooter className="justify-end gap-2">
               <Button
@@ -2184,7 +2418,9 @@ function AdminWorkspace() {
               />
             </label>
             <label className="space-y-1 text-sm lg:col-span-2">
-              <span className="text-muted-foreground">Ссылки на сайт/соцсети</span>
+              <span className="text-muted-foreground">
+                Ссылки на сайт/соцсети
+              </span>
               <Textarea
                 rows={3}
                 value={authorForm.websiteUrls}
@@ -2198,7 +2434,9 @@ function AdminWorkspace() {
               />
             </label>
             {authorMessage ? (
-              <p className="text-sm text-muted-foreground lg:col-span-2">{authorMessage}</p>
+              <p className="text-sm text-muted-foreground lg:col-span-2">
+                {authorMessage}
+              </p>
             ) : null}
             <DialogFooter className="gap-2 lg:col-span-2">
               <Button
@@ -2219,11 +2457,16 @@ function AdminWorkspace() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isPublisherDialogOpen} onOpenChange={setIsPublisherDialogOpen}>
+      <Dialog
+        open={isPublisherDialogOpen}
+        onOpenChange={setIsPublisherDialogOpen}
+      >
         <DialogContent className="sm:max-w-2xl" showCloseButton>
           <DialogHeader>
             <DialogTitle>
-              {editingPublisherId ? "Редактирование издателя" : "Новый издатель"}
+              {editingPublisherId
+                ? "Редактирование издателя"
+                : "Новый издатель"}
             </DialogTitle>
             <DialogDescription>
               Заполните базовую информацию об издателе.
@@ -2304,7 +2547,9 @@ function AdminWorkspace() {
               />
             </label>
             <label className="space-y-1 text-sm lg:col-span-2">
-              <span className="text-muted-foreground">Ссылки на сайт/соцсети</span>
+              <span className="text-muted-foreground">
+                Ссылки на сайт/соцсети
+              </span>
               <Textarea
                 rows={3}
                 value={publisherForm.websiteUrls}
@@ -2318,7 +2563,9 @@ function AdminWorkspace() {
               />
             </label>
             {publisherMessage ? (
-              <p className="text-sm text-muted-foreground lg:col-span-2">{publisherMessage}</p>
+              <p className="text-sm text-muted-foreground lg:col-span-2">
+                {publisherMessage}
+              </p>
             ) : null}
             <DialogFooter className="gap-2 lg:col-span-2">
               <Button
@@ -2339,6 +2586,141 @@ function AdminWorkspace() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isChapterDialogOpen} onOpenChange={setIsChapterDialogOpen}>
+        <DialogContent className="sm:max-w-md" showCloseButton>
+          <DialogHeader>
+            <DialogTitle>Загрузка главы</DialogTitle>
+            <DialogDescription>
+              {selectedTitleForChapter?.name
+                ? `Для тайтла: ${selectedTitleForChapter.name}`
+                : "Выберите страницы (1.png, 2.png, 10.jpg...). Они будут отсортированы автоматически."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={(e) => void submitChapter(e)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <label className="space-y-1 text-sm">
+                <span className="text-muted-foreground">Номер тома</span>
+                <Input
+                  type="number"
+                  value={chapterForm.volume}
+                  onChange={(e) =>
+                    setChapterForm((prev) => ({
+                      ...prev,
+                      volume: e.target.value,
+                    }))
+                  }
+                  placeholder="Напр. 1"
+                  disabled={isChapterUploading}
+                />
+              </label>
+
+              <label className="space-y-1 text-sm">
+                <span className="text-muted-foreground">
+                  Название (опционально)
+                </span>
+                <Input
+                  value={chapterForm.name}
+                  onChange={(e) =>
+                    setChapterForm((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                    }))
+                  }
+                  placeholder="Вступление"
+                  disabled={isChapterUploading}
+                />
+              </label>
+
+              <label className="space-y-1 text-sm">
+                <span className="text-muted-foreground">Номер главы *</span>
+                <Input
+                  type="number"
+                  required
+                  value={chapterForm.number}
+                  onChange={(e) =>
+                    setChapterForm((prev) => ({
+                      ...prev,
+                      number: e.target.value,
+                    }))
+                  }
+                  placeholder="12"
+                  disabled={isChapterUploading}
+                />
+              </label>
+
+              <label className="space-y-1 text-sm">
+                <span className="text-muted-foreground">Под-номер *</span>
+                <Input
+                  type="number"
+                  required
+                  value={chapterForm.subNumber}
+                  onChange={(e) =>
+                    setChapterForm((prev) => ({
+                      ...prev,
+                      subNumber: e.target.value,
+                    }))
+                  }
+                  placeholder="0"
+                  disabled={isChapterUploading}
+                />
+              </label>
+            </div>
+
+            <label className="block space-y-1 text-sm">
+              <span className="text-muted-foreground">Страницы *</span>
+              <Input
+                type="file"
+                multiple
+                accept="image/*"
+                required
+                disabled={isChapterUploading}
+                onChange={(event) => {
+                  if (event.target.files) {
+                    setChapterFiles(Array.from(event.target.files))
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Выбрано файлов: {chapterFiles.length}
+              </p>
+            </label>
+
+            {chapterUploadProgress && (
+              <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                {chapterUploadProgress}
+              </p>
+            )}
+
+            {chapterMessage && (
+              <p
+                className={`text-sm ${chapterMessage.includes("успешно") ? "text-green-600" : "text-destructive"}`}
+              >
+                {chapterMessage}
+              </p>
+            )}
+
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isChapterUploading}
+                onClick={() => {
+                  setIsChapterDialogOpen(false)
+                  resetChapterFormUI()
+                }}
+              >
+                Отмена
+              </Button>
+              <Button type="submit" disabled={isChapterUploading}>
+                {isChapterUploading ? "Загружаем..." : "Создать главу"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Диалог удаления */}
       <AlertDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(open) => {
